@@ -1,7 +1,7 @@
 /*
  * Relation.cpp
  *
- *  Created on: 21 Ïêô 2018
+ *  Created on: 21 ÃÃªÃ´ 2018
  *      Author: parisbre56
  */
 
@@ -69,6 +69,12 @@ void Relation::addTuple(Tuple& tuple) {
     //Add copy
     tuples[num_tuples] = new Tuple(tuple);
     ++num_tuples;
+}
+
+Tuple& Relation::getTuple(uint32_t index) {
+    assert(index < num_tuples);
+    
+    return tuples[index];
 }
 
 string Relation::toString() {
