@@ -1,7 +1,7 @@
 /*
  * ConsoleOutput.h
  *
- *  Created on: 21 Ïêô 2018
+ *  Created on: 21 ï¿½ï¿½ï¿½ 2018
  *      Author: parisbre56
  */
 
@@ -11,18 +11,18 @@
 #include <string>
 
 class ConsoleOutput {
-private:
+protected:
     bool debugEnabled;
 public:
     ConsoleOutput() = delete;
     ConsoleOutput(bool debugEnabled);
     virtual ~ConsoleOutput();
 
-    bool getDebugEnabled();
+    bool const getDebugEnabled() const;
     void setDebugEnabled(bool debugEnabled);
 
-    void debugOutput(std::string outString);
-    void errorOutput(std::string outString);
+    void debugOutput(std::string outString) const;
+    void errorOutput(std::string outString) const;
 };
 
 #endif /* CONSOLEOUTPUT_H_ */

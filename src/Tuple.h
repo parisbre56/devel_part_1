@@ -1,7 +1,7 @@
 /*
  * Tuple.h
  *
- *  Created on: 21 Ïêô 2018
+ *  Created on: 21 ï¿½ï¿½ï¿½ 2018
  *      Author: parisbre56
  */
 
@@ -12,22 +12,22 @@
 #include <string>
 
 class Tuple {
-private:
+protected:
     int32_t key;
     int32_t payload;
+
+    void setPayload(int32_t payload);
+    void setKey(int32_t key);
 public:
     Tuple() = delete;
     Tuple(int32_t key, int32_t payload);
     Tuple(const Tuple& toCopy);
     virtual ~Tuple();
 
-    int32_t getKey();
-    void setKey(int32_t key);
+    int32_t getKey() const;
+    int32_t getPayload() const;
 
-    int32_t getPayload();
-    void setPayload(int32_t payload);
-
-    std::string toString();
+    std::string toString() const;
 };
 
 #endif /* TUPLE_H_ */

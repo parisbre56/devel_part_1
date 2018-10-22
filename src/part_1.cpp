@@ -14,15 +14,17 @@
 #include "consoleOutput.h"
 #include "Relation.h"
 #include "Tuple.h"
+#include "HashTable.h"
 
 using namespace std;
 
-//TODO: Change to correct object type
+//TODO: Change to correct object type?
 Relation radixHashJoin(Relation& relR, Relation& relS);
-uint32_t hashFunc(int32_t toHash);
+uint32_t hashFunc(uint32_t buckets, int32_t toHash);
 
 #define HASH_BITS 3
 
+const uint32_t buckets = 1 << HASH_BITS; //2^n
 const uint32_t hashMask = (1 << HASH_BITS) - 1;
 
 ConsoleOutput* consoleOutput;
@@ -68,38 +70,15 @@ int main(int argc, char* argv[]) {
 }
 
 Relation radixHashJoin(Relation& relR, Relation& relS) {
-    uint32_t buckets = 1 << HASH_BITS; //2^n
-    consoleOutput->debugOutput("Splitting R to "
-                               + to_string(buckets)
-                               + " buckets");
-    uint32_t histogram[buckets] = { }; //Init all to 0
-    
-    uint32_t numOfTuples = relR.getNumTuples();
-    consoleOutput->debugOutput("Splitting "
-                               +to_string(numOfTuples)
-                               +" tuples");
-    for (uint32_t i = 0; i < numOfTuples; ++i) {
-        consoleOutput->debugOutput("Processing tuple "+to_string(i));
-        Tuple& toCheck = relR.getTuple(i);
-        consoleOutput->debugOutput(to_string(i)+":"+toCheck.toString());
-        
-        uint32_t currHash = hashFunc(toCheck.getPayload());
-        consoleOutput->debugOutput("Assigned to bucket "+to_string(currHash));
-        histogram[currHash]++;
-    }
-    consoleOutput->debugOutput("Created histogram with "+to_string(buckets)+" buckets");
-    
-    for (uint32_t i = 0; i < buckets; ++i) {
-        consoleOutput->("[bucket="+to_string(i)+", size="+to_string(histogram[i])+"]");
-    }
-    
-    consoleOutput->debugOutput("Copying relR to ordered table");
+    HashTable rHash(relR, buckets, hashFunc, consoleOutput);
+    HashTable sHash(relS, buckets, hashFunc, consoleOutput);
 
     Relation retRelation;
-    
+
     return retRelation;
 }
 
-uint32_t hashFunc(int32_t toHash) {
+uint32_t hashFunc(uint32_t buckets, int32_t toHash) {
+    //We ignore buckets, we don't really need it
     return hashMask & toHash;
 }

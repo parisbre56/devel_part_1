@@ -1,7 +1,7 @@
 /*
  * Tuple.cpp
  *
- *  Created on: 21 Ïêô 2018
+ *  Created on: 21 ï¿½ï¿½ï¿½ 2018
  *      Author: parisbre56
  */
 
@@ -24,7 +24,7 @@ Tuple::~Tuple() {
     // TODO Auto-generated destructor stub
 }
 
-int32_t Tuple::getKey() {
+int32_t Tuple::getKey() const {
     return key;
 }
 
@@ -32,7 +32,7 @@ void Tuple::setKey(int32_t key) {
     this->key = key;
 }
 
-int32_t Tuple::getPayload() {
+int32_t Tuple::getPayload() const {
     return payload;
 }
 
@@ -40,7 +40,7 @@ void Tuple::setPayload(int32_t payload) {
     this->payload = payload;
 }
 
-string Tuple::toString() {
+string Tuple::toString() const {
     ostringstream retVal;
     retVal << "[Tuple key=" << key << ", payload=" << payload << "]";
     return retVal.str();

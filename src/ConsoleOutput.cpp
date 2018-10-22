@@ -1,7 +1,7 @@
 /*
  * ConsoleOutput.cpp
  *
- *  Created on: 21 Ïêô 2018
+ *  Created on: 21 ï¿½ï¿½ï¿½ 2018
  *      Author: parisbre56
  */
 
@@ -24,7 +24,7 @@ ConsoleOutput::~ConsoleOutput() {
 }
 
 //Getters/Setters
-bool ConsoleOutput::getDebugEnabled() {
+bool const ConsoleOutput::getDebugEnabled() const {
     return debugEnabled;
 }
 
@@ -55,14 +55,14 @@ void output(ostream& stream, string label, string outString) {
          << endl;
 }
 
-void ConsoleOutput::debugOutput(string outString) {
+void ConsoleOutput::debugOutput(string outString) const {
     if (!debugEnabled) {
         return;
     }
 
     output(cerr, "DEBUG", outString);
 }
-void ConsoleOutput::errorOutput(string outString) {
+void ConsoleOutput::errorOutput(string outString) const {
     output(cerr, "ERROR", outString);
 }
 

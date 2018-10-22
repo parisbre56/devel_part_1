@@ -1,7 +1,7 @@
 /*
  * Relation.h
  *
- *  Created on: 21 Ïêô 2018
+ *  Created on: 21 ï¿½ï¿½ï¿½ 2018
  *      Author: parisbre56
  */
 
@@ -14,8 +14,8 @@
 #include "Tuple.h"
 
 class Relation {
-private:
-    Tuple** tuples;
+protected:
+    const Tuple** tuples;
     uint32_t num_tuples;
 
     uint32_t array_size;
@@ -26,13 +26,13 @@ public:
     Relation();
     /** Creates a new Relation by copying the given number
      * of tuples from the given table. **/
-    Relation(uint32_t tuples_to_copy, Tuple** tuples);
+    Relation(uint32_t tuples_to_copy, const Tuple * const * const tuples);
     /** Copy constructor, copies the filled part of the
      * underlying array from another Relation. **/
     Relation(const Relation&);
     virtual ~Relation();
 
-    uint32_t getNumTuples();
+    uint32_t getNumTuples() const;
 
     /** Add a copy of the Tuple to the array of tuples,
      * incrementing the size of the underlying array
@@ -42,8 +42,9 @@ public:
      * is deleted. **/
     void addTuple(Tuple& tuple);
     /** Get the tuple at the given index. **/
-    Tuple& getTuple(uint32_t index);
-    std::string toString();
+    const Tuple& getTuple(uint32_t index) const;
+
+    std::string toString() const;
 };
 
 #endif /* RELATION_H_ */
