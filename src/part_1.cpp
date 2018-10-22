@@ -3,7 +3,7 @@
 // Author      : sdi1100070
 // Version     :
 // Copyright   : No copyright
-// Description : Hello World in C++, Ansi-style
+// Description : Part 1 of Devel project
 //============================================================================
 
 #include <iostream>
@@ -68,16 +68,35 @@ int main(int argc, char* argv[]) {
 }
 
 Relation radixHashJoin(Relation& relR, Relation& relS) {
-    Relation retRelation;
     uint32_t buckets = 1 << HASH_BITS; //2^n
     consoleOutput->debugOutput("Splitting R to "
                                + to_string(buckets)
                                + " buckets");
     uint32_t histogram[buckets] = { }; //Init all to 0
-    for (uint32_t i = 0; i < relR.getNumTuples(); ++i) {
-
+    
+    uint32_t numOfTuples = relR.getNumTuples();
+    consoleOutput->debugOutput("Splitting "
+                               +to_string(numOfTuples)
+                               +" tuples");
+    for (uint32_t i = 0; i < numOfTuples; ++i) {
+        consoleOutput->debugOutput("Processing tuple "+to_string(i));
+        Tuple& toCheck = relR.getTuple(i);
+        consoleOutput->debugOutput(to_string(i)+":"+toCheck.toString());
+        
+        uint32_t currHash = hashFunc(toCheck.getPayload());
+        consoleOutput->debugOutput("Assigned to bucket "+to_string(currHash));
+        histogram[currHash]++;
     }
+    consoleOutput->debugOutput("Created histogram with "+to_string(buckets)+" buckets");
+    
+    for (uint32_t i = 0; i < buckets; ++i) {
+        consoleOutput->("[bucket="+to_string(i)+", size="+to_string(histogram[i])+"]");
+    }
+    
+    consoleOutput->debugOutput("Copying relR to ordered table");
 
+    Relation retRelation;
+    
     return retRelation;
 }
 
