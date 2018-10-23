@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
 
     //Perform join
     consoleOutput->debugOutput("Starting radixHashJoin");
-    Result result = radixHashJoin(relR, relS);
+    Result result(radixHashJoin(relR, relS));
     consoleOutput->debugOutput("radixHashJoin finished");
     consoleOutput->debugOutput(result.toString());
 

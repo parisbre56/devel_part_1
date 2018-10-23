@@ -211,7 +211,7 @@ string HashTable::toString() const {
                    << ","
                    << j
                    << ">: "
-                   << (orderedTuples[pos])->toString();
+            << (orderedTuples[pos])->toString();
         }
     }
     retVal << "]]";

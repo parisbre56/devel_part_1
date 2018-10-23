@@ -32,7 +32,7 @@ Tuple& Tuple::operator=(const Tuple& toCopy) {
 }
 
 Tuple::~Tuple() {
-    // TODO Auto-generated destructor stub
+    //Do nothing
 }
 
 int32_t Tuple::getKey() const {

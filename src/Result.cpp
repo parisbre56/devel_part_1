@@ -15,11 +15,13 @@
 using namespace std;
 
 Result::Result() {
+    tuples = new Tuple[BLOCK_SIZE];
     numTuples = 0;
     next = nullptr;
 }
 
 Result::Result(const Result& toCopy) {
+    tuples = new Tuple[BLOCK_SIZE];
     copyValuesInternal(toCopy);
 }
 
@@ -66,7 +68,33 @@ void Result::copyValuesInternal(const Result& toCopy) {
     }
 }
 
+Result::Result(Result&& toMove) {
+    moveValuesInternal(toMove);
+}
+
+Result& Result::operator=(Result&& toMove) {
+    if (tuples != nullptr) {
+        delete tuples;
+    }
+    if (next != nullptr) {
+        delete next;
+    }
+    moveValuesInternal(toMove);
+    return *this;
+}
+
+void Result::moveValuesInternal(Result& toMove) {
+    numTuples = toMove.numTuples;
+    tuples = toMove.tuples;
+    next = toMove.next;
+    toMove.tuples = nullptr;
+    toMove.next = nullptr;
+}
+
 Result::~Result() {
+    if (tuples != nullptr) {
+        delete tuples;
+    }
     if (next != nullptr) {
         delete next;
     }
@@ -96,14 +124,17 @@ void Result::addTuple(Tuple& toAdd) {
 
 string Result::toString() const {
     ostringstream retVal;
-    retVal
-    << "[Result numTuples=" << numTuples
-    << ", tuples=[";
-    for (uint32_t i = 0; i < numTuples; ++i) {
-        retVal << "\n\t" << i << ": " << tuples[i].toString();
+    retVal << "[Result numTuples=" << numTuples << ", tuples=";
+    if (tuples == nullptr) {
+        retVal << "null";
     }
-    retVal << "], next="
-           << (next == nullptr ? "null" : next->toString())
-           << "]";
+    else {
+        retVal << "[";
+        for (uint32_t i = 0; i < numTuples; ++i) {
+            retVal << "\n\t" << i << ": " << tuples[i].toString();
+        }
+        retVal << "]";
+    }
+    retVal << ", next=" << (next == nullptr ? "null" : next->toString()) << "]";
     return retVal.str();
 }

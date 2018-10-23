@@ -8,8 +8,9 @@
 #ifndef TUPLE_H_
 #define TUPLE_H_
 
-#include <cstdint>
 #include <string>
+
+#include <cstdint>
 
 class Tuple {
 protected:
@@ -17,9 +18,13 @@ protected:
     int32_t payload;
 
 public:
+    /** Create a Tuple with all values initialized to 0 **/
     Tuple();
+    /** Create a Tuple with values initialized to the given values **/
     Tuple(int32_t key, int32_t payload);
+    /** Create a Tuple with the values of the given Tuple **/
     Tuple(const Tuple& toCopy);
+    /** Set the values of this Tuple to the values of the assigned Tuple **/
     Tuple& operator=(const Tuple& toCopy);
     virtual ~Tuple();
 

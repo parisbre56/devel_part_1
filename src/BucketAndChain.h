@@ -28,6 +28,8 @@ protected:
     void error(std::string outString);
 public:
     BucketAndChain() = delete;
+    BucketAndChain(const BucketAndChain& toCopy) = delete;
+    BucketAndChain& operator=(const BucketAndChain& toCopy) = delete;
     BucketAndChain(const HashTable& hashTable,
                    uint32_t bucket,
                    uint32_t subBuckets,

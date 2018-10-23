@@ -18,21 +18,31 @@
 
 class Result {
 protected:
-    Tuple tuples[BLOCK_SIZE];
+    Tuple* tuples;
     uint32_t numTuples;
     Result* next;
 
     Result* getLastSegment();
     void copyValuesInternal(const Result& toCopy);
+    void moveValuesInternal(Result& toMove);
+
 public:
-    /** Creates a new Result with no tuples stored
-     * and a predefined number of empty spaces in the
-     * table. **/
+    /** Creates a new empty Result **/
     Result();
-    /** Copy constructor, copies the filled part of the
-     * underlying array from another Result. **/
+    /** Copy constructor, copies the contents of the given Result
+     * to the new Result. **/
     Result(const Result& toCopy);
+    /** Move the data from the given Result to a new one. The old
+     * Result is left empty and unusable, it can only be deleted. **/
+    Result(Result&& toMove);
+    /** Copy assignment operator, copies the content of the given Result
+     * to the new Result. If this has more segments than toCopy, then those
+     * segments will be left empty but will not be deleted. **/
     Result& operator=(const Result& toCopy);
+    /** Move assignment operator, move the data from the given Result
+     * to this one. If this result contains data it will be deleted.
+     * The old result is left unusable and can only be deleted. **/
+    Result& operator=(Result&& toMove);
     virtual ~Result();
 
     /** The number of tuples in this segment **/

@@ -8,8 +8,9 @@
 #ifndef HASHTABLE_H_
 #define HASHTABLE_H_
 
-#include <cstdint>
 #include <string>
+
+#include <cstdint>
 
 #include "ConsoleOutput.h"
 #include "Relation.h"
@@ -41,7 +42,9 @@ public:
               uint32_t buckets,
               uint32_t (* const hashFunction)(uint32_t, int32_t),
               const ConsoleOutput * const consoleOutput = nullptr);
+
     HashTable(const HashTable& toCopy);
+    HashTable& operator=(const HashTable& toCopy) = delete;
     virtual ~HashTable();
 
     uint32_t getBuckets() const;

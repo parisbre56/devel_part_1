@@ -8,17 +8,18 @@
 #ifndef RELATION_H_
 #define RELATION_H_
 
-#include <cstdint>
 #include <string>
+
+#include <cstdint>
 
 #include "Tuple.h"
 
 class Relation {
 protected:
     const Tuple** tuples;
-    uint32_t num_tuples;
+    uint32_t numTuples;
 
-    uint32_t array_size;
+    uint32_t arraySize;
 public:
     /** Creates a new Relation with no tuples stored
      * and a predefined number of empty spaces in the
@@ -26,10 +27,17 @@ public:
     Relation();
     /** Creates a new Relation by copying the given number
      * of tuples from the given table. **/
-    Relation(uint32_t tuples_to_copy, const Tuple * const * const tuples);
+    Relation(uint32_t numOfTuplesToCopy,
+             const Tuple * const * const tuplesToCopy);
     /** Copy constructor, copies the filled part of the
      * underlying array from another Relation. **/
-    Relation(const Relation&);
+    Relation(const Relation& toCopy);
+    /** Move constructor, moves the underlying array to
+     * this Relation. The old relation is left in an unusable state
+     * and can only be safely deleted. **/
+    Relation(Relation&& toMove);
+    /** Copy assignment disabled **/
+    Relation& operator=(const Relation& toCopy) = delete;
     virtual ~Relation();
 
     uint32_t getNumTuples() const;
