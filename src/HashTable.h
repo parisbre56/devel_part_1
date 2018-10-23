@@ -11,8 +11,8 @@
 #include <cstdint>
 #include <string>
 
-#include "Relation.h"
 #include "ConsoleOutput.h"
+#include "Relation.h"
 
 class HashTable {
 protected:
@@ -44,10 +44,13 @@ public:
     HashTable(const HashTable& toCopy);
     virtual ~HashTable();
 
-    uint32_t getBuckets();
-    uint32_t getTuplesInBucket(uint32_t bucket);
-    Tuple& getTuple(uint32_t bucket, uint32_t index);
-    std::string toString();
+    uint32_t getBuckets() const;
+    uint32_t getTuplesInBucket(uint32_t bucket) const;
+    const Tuple * const * const getBucket(uint32_t bucket) const;
+    /** Get the (index) element of the (bucket) bucket **/
+    const Tuple& getTuple(uint32_t bucket, uint32_t index) const;
+
+    std::string toString() const;
 };
 
 #endif /* HASHTABLE_H_ */

@@ -8,6 +8,9 @@
 #include "HashTable.h"
 
 #include <stdexcept>
+#include <sstream>
+
+#include <cstring>
 
 using namespace std;
 
@@ -96,9 +99,20 @@ HashTable::HashTable(const Relation& relation,
     debug("Tuples copied");
 }
 
-/*HashTable::HashTable(const HashTable & toCopy) {
-    //TODO copy constructor
- }*/
+HashTable::HashTable(const HashTable & toCopy) :
+        buckets(toCopy.buckets),
+        numTuples(toCopy.numTuples),
+        hashFunction(toCopy.hashFunction),
+        consoleOutput(toCopy.consoleOutput),
+        histogram(new uint32_t[buckets] { }),
+        pSum(new uint32_t[buckets] { }),
+        orderedTuples(new const Tuple*[toCopy.numTuples] { }) {
+    memcpy(histogram, toCopy.histogram, buckets * sizeof(uint32_t));
+    memcpy(pSum, toCopy.pSum, buckets * sizeof(uint32_t));
+    for (uint32_t i = 0; i < numTuples; ++i) {
+        orderedTuples[i] = new Tuple(*(toCopy.orderedTuples[i]));
+    }
+}
 
 HashTable::~HashTable() {
     delete histogram;
@@ -110,6 +124,98 @@ HashTable::~HashTable() {
         }
     }
     delete orderedTuples;
+}
+
+uint32_t HashTable::getBuckets() const {
+    return buckets;
+}
+
+uint32_t HashTable::getTuplesInBucket(uint32_t bucket) const {
+    if (bucket < 0 || bucket >= buckets) {
+        throw runtime_error("bucket out of bounds [bucket="
+                            + to_string(bucket)
+                            + ", buckets="
+                            + to_string(buckets)
+                            + "]");
+    }
+
+    return histogram[bucket];
+}
+
+const Tuple * const * const HashTable::getBucket(uint32_t bucket) const {
+    if (bucket < 0 || bucket >= buckets) {
+        throw runtime_error("bucket out of bounds [bucket="
+                            + to_string(bucket)
+                            + ", buckets="
+                            + to_string(buckets)
+                            + "]");
+    }
+
+    return orderedTuples + pSum[bucket];
+}
+
+const Tuple& HashTable::getTuple(uint32_t bucket, uint32_t index) const {
+    if (bucket < 0 || bucket >= buckets) {
+        throw runtime_error("bucket out of bounds [bucket="
+                            + to_string(bucket)
+                            + ", buckets="
+                            + to_string(buckets)
+                            + "]");
+    }
+    if (index < 0 || index >= histogram[bucket]) {
+        throw runtime_error("bucket index out of bounds [bucket="
+                            + to_string(bucket)
+                            + ", index="
+                            + to_string(index)
+                            + ", histogram="
+                            + to_string(histogram[bucket])
+                            + "]");
+    }
+
+    return *(orderedTuples[pSum[bucket] + index]);
+}
+
+string HashTable::toString() const {
+    ostringstream retVal;
+    retVal << "[HashTable buckets="
+           << buckets
+           << ", numTuples="
+           << numTuples
+           << ", hashFunction="
+           << (void*) hashFunction
+           << ", consoleOutput="
+           << consoleOutput
+           << ", histogram=[";
+    for (uint32_t i = 0; i < buckets; ++i) {
+        if (i != 0) {
+            retVal << ", ";
+        }
+        retVal << histogram[i];
+    }
+    retVal << "], pSum=[";
+    for (uint32_t i = 0; i < buckets; ++i) {
+        if (i != 0) {
+            retVal << ", ";
+        }
+        retVal << pSum[i];
+    }
+    retVal << "], orderedTuples=[";
+    for (uint32_t i = 0; i < buckets; ++i) {
+        retVal << "\n\tBucket #" << i;
+        uint32_t bucketStart = pSum[i];
+        uint32_t numInBucket = histogram[i];
+        for (uint32_t j = 0; j < numInBucket; ++j) {
+            uint32_t pos = bucketStart + j;
+            retVal << "\n\t\t<"
+                   << pos
+                   << ","
+                   << j
+                   << ">: "
+                   << (orderedTuples[pos])->toString();
+        }
+    }
+    retVal << "]]";
+    return retVal.str();
 }
 
 void HashTable::debug(string outString) {

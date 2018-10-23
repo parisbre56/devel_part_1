@@ -16,16 +16,17 @@ protected:
     int32_t key;
     int32_t payload;
 
-    void setPayload(int32_t payload);
-    void setKey(int32_t key);
 public:
-    Tuple() = delete;
+    Tuple();
     Tuple(int32_t key, int32_t payload);
     Tuple(const Tuple& toCopy);
+    Tuple& operator=(const Tuple& toCopy);
     virtual ~Tuple();
 
     int32_t getKey() const;
+    void setKey(int32_t key);
     int32_t getPayload() const;
+    void setPayload(int32_t payload);
 
     std::string toString() const;
 };

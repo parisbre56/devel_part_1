@@ -11,6 +11,11 @@
 
 using namespace std;
 
+Tuple::Tuple() {
+    key = 0;
+    payload = 0;
+}
+
 Tuple::Tuple(int32_t key, int32_t payload) {
     this->key = key;
     this->payload = payload;
@@ -18,6 +23,12 @@ Tuple::Tuple(int32_t key, int32_t payload) {
 
 Tuple::Tuple(const Tuple& toCopy) :
         Tuple(toCopy.key, toCopy.payload) {
+}
+
+Tuple& Tuple::operator=(const Tuple& toCopy) {
+    this->key = toCopy.key;
+    this->payload = toCopy.payload;
+    return *this;
 }
 
 Tuple::~Tuple() {

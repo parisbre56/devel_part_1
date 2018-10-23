@@ -11,18 +11,22 @@
 #include <cstdint>
 #include <cmath>
 
-#include "consoleOutput.h"
-#include "Relation.h"
+#include "ConsoleOutput.h"
+#include "BucketAndChain.h"
 #include "Tuple.h"
 #include "HashTable.h"
+#include "Relation.h"
+#include "Result.h"
 
 using namespace std;
 
 //TODO: Change to correct object type?
-Relation radixHashJoin(Relation& relR, Relation& relS);
+Result radixHashJoin(Relation& relR, Relation& relS);
 uint32_t hashFunc(uint32_t buckets, int32_t toHash);
+uint32_t hashFuncChain(uint32_t buckets, int32_t toHash);
 
 #define HASH_BITS 3
+#define SUB_BUCKETS 10
 
 const uint32_t buckets = 1 << HASH_BITS; //2^n
 const uint32_t hashMask = (1 << HASH_BITS) - 1;
@@ -62,23 +66,50 @@ int main(int argc, char* argv[]) {
 
     //Perform join
     consoleOutput->debugOutput("Starting radixHashJoin");
-    Relation result = radixHashJoin(relR, relS);
+    Result result = radixHashJoin(relR, relS);
     consoleOutput->debugOutput("radixHashJoin finished");
     consoleOutput->debugOutput(result.toString());
 
     return 0;
 }
 
-Relation radixHashJoin(Relation& relR, Relation& relS) {
+Result radixHashJoin(Relation& relR, Relation& relS) {
     HashTable rHash(relR, buckets, hashFunc, consoleOutput);
     HashTable sHash(relS, buckets, hashFunc, consoleOutput);
 
-    Relation retRelation;
+    consoleOutput->debugOutput("rHash=" + rHash.toString());
+    consoleOutput->debugOutput("sHash=" + sHash.toString());
 
-    return retRelation;
+    Result retResult;
+    for (uint32_t i = 0; i < buckets; ++i) {
+        if (rHash.getTuplesInBucket(i) == 0
+            || sHash.getTuplesInBucket(i) == 0) {
+            consoleOutput->debugOutput("Skipping bucket "
+                                       + to_string(i)
+                                       + ": 0 rows [R="
+                                       + to_string(rHash.getTuplesInBucket(i))
+                                       + ", S="
+                                       + to_string(sHash.getTuplesInBucket(i))
+                                       + "]");
+            continue;
+        }
+
+        BucketAndChain rChain(rHash,
+                              i,
+                              SUB_BUCKETS,
+                              hashFuncChain,
+                              consoleOutput);
+        rChain.join(sHash, i, retResult);
+    }
+
+    return retResult;
 }
 
 uint32_t hashFunc(uint32_t buckets, int32_t toHash) {
     //We ignore buckets, we don't really need it
     return hashMask & toHash;
+}
+
+uint32_t hashFuncChain(uint32_t buckets, int32_t toHash) {
+    return toHash % buckets;
 }
