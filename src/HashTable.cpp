@@ -16,15 +16,14 @@ using namespace std;
 
 HashTable::HashTable(const Relation& relation,
                      uint32_t buckets,
-                     uint32_t (* const hashFunction)(uint32_t, int32_t),
-                     const ConsoleOutput * const consoleOutput) :
+                     uint32_t (* const hashFunction)(uint32_t, int32_t)) :
         buckets(buckets),
         numTuples(relation.getNumTuples()),
         hashFunction(hashFunction),
-        consoleOutput(consoleOutput),
         histogram(new uint32_t[buckets] { }),
         pSum(new uint32_t[buckets] { }),
         orderedTuples(new const Tuple*[relation.getNumTuples()] { }) {
+    ConsoleOutput consoleOutput("HashTable");
     if (this->buckets <= 0) {
         throw runtime_error("buckets must be positive [buckets="
                             + to_string(this->buckets)
@@ -53,13 +52,13 @@ HashTable::HashTable(const Relation& relation,
         CO_IFDEBUG(consoleOutput, "Assigned to bucket " + to_string(currHash));
         histogram[currHash]++;
     }
-    if (consoleOutput != nullptr && consoleOutput->getDebugEnabled()) {
-        consoleOutput->debugOutput("Created histogram with "
+    if (consoleOutput.getDebugEnabled()) {
+        consoleOutput.debugOutput("Created histogram with "
                                    + to_string(buckets)
                                    + " buckets");
 
         for (uint32_t i = 0; i < buckets; ++i) {
-            consoleOutput->debugOutput("[bucket="
+            consoleOutput.debugOutput("[bucket="
                                        + to_string(i)
                                        + ", size="
                                        + to_string(histogram[i])
@@ -106,7 +105,6 @@ HashTable::HashTable(const HashTable & toCopy) :
         buckets(toCopy.buckets),
         numTuples(toCopy.numTuples),
         hashFunction(toCopy.hashFunction),
-        consoleOutput(toCopy.consoleOutput),
         histogram(new uint32_t[buckets] { }),
         pSum(new uint32_t[buckets] { }),
         orderedTuples(new const Tuple*[toCopy.numTuples] { }) {
@@ -186,8 +184,6 @@ string HashTable::toString() const {
            << numTuples
            << ", hashFunction="
            << (void*) hashFunction
-           << ", consoleOutput="
-           << consoleOutput
            << ", histogram=[";
     for (uint32_t i = 0; i < buckets; ++i) {
         if (i != 0) {

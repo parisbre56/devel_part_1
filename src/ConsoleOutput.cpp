@@ -14,9 +14,16 @@
 using namespace std;
 using namespace std::chrono;
 
+bool ConsoleOutput::debugEnabledDefault = true;
+
 //Constructors
-ConsoleOutput::ConsoleOutput(bool debugEnabled) {
-    this->debugEnabled = debugEnabled;
+ConsoleOutput::ConsoleOutput(string label) :
+        ConsoleOutput(debugEnabledDefault, label) {
+
+}
+
+ConsoleOutput::ConsoleOutput(bool debugEnabled, string label) :
+        debugEnabled(debugEnabled), label(label) {
 }
 
 ConsoleOutput::~ConsoleOutput() {
@@ -33,7 +40,7 @@ void ConsoleOutput::setDebugEnabled(bool debugEnabled) {
 }
 
 //Methods
-void output(ostream& stream, string label, string outString) {
+void output(ostream& stream, string level, string label, string outString) {
     //Get now
     time_point<system_clock> now = system_clock::now();
     //Get current millis
@@ -44,15 +51,17 @@ void output(ostream& stream, string label, string outString) {
     tm localt = *localtime(&cnow);
 
     stream << put_time(&localt, "%H:%M:%S")
-         << '.'
-         << setfill('0')
-         << setw(3)
-         << ms.count()
-         << " "
-         << label
-         << ": "
-         << outString
-         << endl;
+           << '.'
+           << setfill('0')
+           << setw(3)
+           << ms.count()
+           << " "
+           << level
+           << " ["
+           << label
+           << "] "
+           << outString
+           << endl;
 }
 
 void ConsoleOutput::debugOutput(string outString) const {
@@ -60,9 +69,9 @@ void ConsoleOutput::debugOutput(string outString) const {
         return;
     }
 
-    output(cerr, "DEBUG", outString);
+    output(cerr, "DEBUG", label, outString);
 }
 void ConsoleOutput::errorOutput(string outString) const {
-    output(cerr, "ERROR", outString);
+    output(cerr, "ERROR", label, outString);
 }
 

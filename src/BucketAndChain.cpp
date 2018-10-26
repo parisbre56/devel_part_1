@@ -15,15 +15,14 @@ BucketAndChain::BucketAndChain(const HashTable& hashTable,
                                uint32_t hashBucket,
                                uint32_t subBuckets,
                                uint32_t (* const hashFunction)(uint32_t,
-                                                               int32_t),
-                               const ConsoleOutput * const consoleOutput) :
+                                                               int32_t)) :
         referenceTable(hashTable.getBucket(hashBucket)),
         tuplesInBucket(hashTable.getTuplesInBucket(hashBucket)),
         subBuckets(subBuckets),
         hashFunction(hashFunction),
-        consoleOutput(consoleOutput),
         bucket(new uint32_t[subBuckets]),
         chain(new uint32_t[hashTable.getTuplesInBucket(hashBucket)] { }) {
+    ConsoleOutput consoleOutput("BucketAndChain");
     CO_IFDEBUG(consoleOutput,
                "Splitting "
           + to_string(tuplesInBucket)
@@ -65,6 +64,7 @@ BucketAndChain::BucketAndChain(const HashTable& hashTable,
 void BucketAndChain::join(HashTable& hashToJoin,
                           uint32_t bucketToJoin,
                           Result& resultAggregator) {
+    ConsoleOutput consoleOutput("JOIN");
     CO_IFDEBUG(consoleOutput,
                "Joining with bucket "
           + to_string(bucketToJoin)
@@ -122,8 +122,6 @@ string BucketAndChain::toString() {
            << to_string(subBuckets)
            << ", hashFunction="
            << (void*) hashFunction
-           << ", consoleOutput="
-           << consoleOutput
            << ", bucket=[";
     for (uint32_t i = 0; i < subBuckets; ++i) {
         if (i != 0) {

@@ -20,7 +20,6 @@ protected:
     const uint32_t tuplesInBucket;
     const uint32_t subBuckets;
     uint32_t (* const hashFunction)(uint32_t, int32_t);
-    const ConsoleOutput * const consoleOutput;
     uint32_t * const bucket;
     uint32_t * const chain;
 public:
@@ -37,8 +36,7 @@ public:
     BucketAndChain(const HashTable& hashTable,
                    uint32_t bucket,
                    uint32_t subBuckets,
-                   uint32_t (* const hashFunction)(uint32_t, int32_t),
-                   const ConsoleOutput * const consoleOutput = nullptr);
+                   uint32_t (* const hashFunction)(uint32_t, int32_t));
     virtual ~BucketAndChain();
 
     void join(HashTable& hashToJoin,

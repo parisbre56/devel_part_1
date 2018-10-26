@@ -20,7 +20,6 @@ protected:
     const uint32_t buckets;
     const uint32_t numTuples;
     uint32_t (* const hashFunction)(uint32_t, int32_t);
-    const ConsoleOutput * const consoleOutput;
     uint32_t * const histogram;
     uint32_t * const pSum;
     const Tuple ** const orderedTuples;
@@ -37,8 +36,7 @@ public:
      * and error info. **/
     HashTable(const Relation& relation,
               uint32_t buckets,
-              uint32_t (* const hashFunction)(uint32_t, int32_t),
-              const ConsoleOutput * const consoleOutput = nullptr);
+              uint32_t (* const hashFunction)(uint32_t, int32_t));
 
     HashTable(const HashTable& toCopy);
     HashTable& operator=(const HashTable& toCopy) = delete;

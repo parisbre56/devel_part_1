@@ -34,27 +34,24 @@ uint32_t hashFuncChain(uint32_t buckets, int32_t toHash);
 const uint32_t buckets = 1 << HASH_BITS; //2^n
 const uint32_t hashMask = (1 << HASH_BITS) - 1;
 
-ConsoleOutput* consoleOutput;
-
 int main(int argc, char* argv[]) {
-    //Use this to automatically handle deletion while keeping it global.
-    ConsoleOutput conOutT(false);
-    consoleOutput = &conOutT;
+    ConsoleOutput::debugEnabledDefault = false;
+    ConsoleOutput consoleOutput("Main");
 
-    consoleOutput->errorOutput("Hash bits are: " + to_string(HASH_BITS));
-    consoleOutput->errorOutput("Hash mask is: " + to_string(hashMask));
-    consoleOutput->errorOutput("buckets are: " + to_string(buckets));
-    consoleOutput->errorOutput("subBuckets are: " + to_string(SUB_BUCKETS));
-    consoleOutput->errorOutput("RELR are: " + to_string(RELR));
-    consoleOutput->errorOutput("RELS are: " + to_string(RELS));
-    consoleOutput->errorOutput("DIFF is: " + to_string(DIFF));
-    consoleOutput->errorOutput("Result block size tuples are: "
+    consoleOutput.errorOutput("Hash bits are: " + to_string(HASH_BITS));
+    consoleOutput.errorOutput("Hash mask is: " + to_string(hashMask));
+    consoleOutput.errorOutput("buckets are: " + to_string(buckets));
+    consoleOutput.errorOutput("subBuckets are: " + to_string(SUB_BUCKETS));
+    consoleOutput.errorOutput("RELR are: " + to_string(RELR));
+    consoleOutput.errorOutput("RELS are: " + to_string(RELS));
+    consoleOutput.errorOutput("DIFF is: " + to_string(DIFF));
+    consoleOutput.errorOutput("Result block size tuples are: "
                                + to_string(RESULT_H_BLOCK_SIZE));
-    consoleOutput->errorOutput("Result block size bytes are: "
+    consoleOutput.errorOutput("Result block size bytes are: "
                                + to_string(RESULT_H_BLOCK_SIZE
                                            * sizeof(Tuple)));
 
-    consoleOutput->errorOutput("PART_1 EXECUTION STARTED");
+    consoleOutput.errorOutput("PART_1 EXECUTION STARTED");
     clock_t start = clock();
 
     CO_IFDEBUG(consoleOutput, "Generating test data");
@@ -89,14 +86,14 @@ int main(int argc, char* argv[]) {
     CO_IFDEBUG(consoleOutput, "radixHashJoin finished");
     CO_IFDEBUG(consoleOutput, result.toString());
 
-    consoleOutput->errorOutput("PART_1 EXECUTION ENDED");
-    consoleOutput->errorOutput("Load Time: "
+    consoleOutput.errorOutput("PART_1 EXECUTION ENDED");
+    consoleOutput.errorOutput("Load Time: "
                                + to_string((joinStart - start)
                                            / (double) CLOCKS_PER_SEC));
-    consoleOutput->errorOutput("Join Time: "
+    consoleOutput.errorOutput("Join Time: "
                                + to_string((end - joinStart)
                                            / (double) CLOCKS_PER_SEC));
-    consoleOutput->errorOutput("Total Time: "
+    consoleOutput.errorOutput("Total Time: "
                                + to_string((end - start)
                                            / (double) CLOCKS_PER_SEC));
 
@@ -106,10 +103,11 @@ int main(int argc, char* argv[]) {
 }
 
 Result radixHashJoin(Relation& relR, Relation& relS) {
-    consoleOutput->errorOutput("JOIN EXECUTION STARTED");
+    ConsoleOutput consoleOutput("RadixHashJoin");
+    consoleOutput.errorOutput("JOIN EXECUTION STARTED");
 
-    HashTable rHash(relR, buckets, hashFunc, consoleOutput);
-    HashTable sHash(relS, buckets, hashFunc, consoleOutput);
+    HashTable rHash(relR, buckets, hashFunc);
+    HashTable sHash(relS, buckets, hashFunc);
 
     CO_IFDEBUG(consoleOutput, "rHash=" + rHash.toString());
     CO_IFDEBUG(consoleOutput, "sHash=" + sHash.toString());
@@ -133,12 +131,12 @@ Result radixHashJoin(Relation& relR, Relation& relS) {
 
         BucketAndChain rChain(rHash, i,
         SUB_BUCKETS,
-                              hashFuncChain, consoleOutput);
+                              hashFuncChain);
         CO_IFDEBUG(consoleOutput, "Created subHashTable " + rChain.toString());
         rChain.join(sHash, i, retResult);
     }
 
-    consoleOutput->errorOutput("JOIN EXECUTION ENDED");
+    consoleOutput.errorOutput("JOIN EXECUTION ENDED");
     return retResult;
 }
 
