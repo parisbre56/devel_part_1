@@ -95,8 +95,12 @@ Result::~Result() {
     if (tuples != nullptr) {
         delete tuples;
     }
-    if (next != nullptr) {
-        delete next;
+    //Don't recurse deletion for better performance
+    while (next != nullptr) {
+        Result* toDelete = next;
+        next = toDelete->next;
+        toDelete->next = nullptr;
+        delete toDelete;
     }
 }
 
