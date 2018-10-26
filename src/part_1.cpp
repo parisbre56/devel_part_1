@@ -46,10 +46,9 @@ int main(int argc, char* argv[]) {
     consoleOutput.errorOutput("RELS are: " + to_string(RELS));
     consoleOutput.errorOutput("DIFF is: " + to_string(DIFF));
     consoleOutput.errorOutput("Result block size tuples are: "
-                               + to_string(RESULT_H_BLOCK_SIZE));
+                              + to_string(RESULT_H_BLOCK_SIZE));
     consoleOutput.errorOutput("Result block size bytes are: "
-                               + to_string(RESULT_H_BLOCK_SIZE
-                                           * sizeof(Tuple)));
+                              + to_string(RESULT_H_BLOCK_SIZE * sizeof(Tuple)));
 
     consoleOutput.errorOutput("PART_1 EXECUTION STARTED");
     clock_t start = clock();
@@ -88,14 +87,14 @@ int main(int argc, char* argv[]) {
 
     consoleOutput.errorOutput("PART_1 EXECUTION ENDED");
     consoleOutput.errorOutput("Load Time: "
-                               + to_string((joinStart - start)
-                                           / (double) CLOCKS_PER_SEC));
+                              + to_string((joinStart - start)
+                                          / (double) CLOCKS_PER_SEC));
     consoleOutput.errorOutput("Join Time: "
-                               + to_string((end - joinStart)
-                                           / (double) CLOCKS_PER_SEC));
+                              + to_string((end - joinStart)
+                                          / (double) CLOCKS_PER_SEC));
     consoleOutput.errorOutput("Total Time: "
-                               + to_string((end - start)
-                                           / (double) CLOCKS_PER_SEC));
+                              + to_string((end - start)
+                                          / (double) CLOCKS_PER_SEC));
 
     //cout << result.toString() << endl;
 

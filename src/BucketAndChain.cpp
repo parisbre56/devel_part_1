@@ -25,10 +25,10 @@ BucketAndChain::BucketAndChain(const HashTable& hashTable,
     ConsoleOutput consoleOutput("BucketAndChain");
     CO_IFDEBUG(consoleOutput,
                "Splitting "
-          + to_string(tuplesInBucket)
-          + " tuples to "
-          + to_string(this->subBuckets)
-          + " subBuckets");
+               + to_string(tuplesInBucket)
+               + " tuples to "
+               + to_string(this->subBuckets)
+               + " subBuckets");
 
     //Initialize tables to tuplesInBucket (that way we can tell when a position is unset)
     CO_IFDEBUG(consoleOutput, "Initializing bucket");
@@ -67,15 +67,15 @@ void BucketAndChain::join(HashTable& hashToJoin,
     ConsoleOutput consoleOutput("JOIN");
     CO_IFDEBUG(consoleOutput,
                "Joining with bucket "
-          + to_string(bucketToJoin)
-          + " of given hashTable");
+               + to_string(bucketToJoin)
+               + " of given hashTable");
     const Tuple* const * tuplesToJoin = hashToJoin.getBucket(bucketToJoin);
     uint32_t numTuplesToJoin = hashToJoin.getTuplesInBucket(bucketToJoin);
 
     CO_IFDEBUG(consoleOutput,
                "Examining "
-          + to_string(numTuplesToJoin)
-          + " tuples in given hashTable");
+               + to_string(numTuplesToJoin)
+               + " tuples in given hashTable");
     for (uint32_t i = 0; i < numTuplesToJoin; ++i) {
         CO_IFDEBUG(consoleOutput, "Examining tuple " + i);
         const Tuple& currTuple = *(tuplesToJoin[i]);
@@ -95,9 +95,9 @@ void BucketAndChain::join(HashTable& hashToJoin,
             const Tuple& searchPointTuple = *(referenceTable[searchPoint]);
             CO_IFDEBUG(consoleOutput,
                        "c"
-                  + to_string(searchPoint)
-                  + ":"
-                  + searchPointTuple.toString());
+                       + to_string(searchPoint)
+                       + ":"
+                       + searchPointTuple.toString());
             if (searchPointTuple.getPayload() == currTuple.getPayload()) {
                 Tuple joinRow(searchPointTuple.getKey(), currTuple.getKey());
                 CO_IFDEBUG(consoleOutput,
