@@ -116,15 +116,15 @@ HashTable::HashTable(const HashTable & toCopy) :
 }
 
 HashTable::~HashTable() {
-    delete histogram;
-    delete pSum;
+    delete[] histogram;
+    delete[] pSum;
     for (uint32_t i = 0; i < numTuples; ++i) {
         const Tuple* currTuple = orderedTuples[i];
         if (currTuple != nullptr) {
             delete currTuple;
         }
     }
-    delete orderedTuples;
+    delete[] orderedTuples;
 }
 
 uint32_t HashTable::getBuckets() const {

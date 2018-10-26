@@ -93,7 +93,7 @@ void Result::moveValuesInternal(Result& toMove) {
 
 Result::~Result() {
     if (tuples != nullptr) {
-        delete tuples;
+        delete[] tuples;
     }
     //Don't recurse deletion for better performance
     while (next != nullptr) {

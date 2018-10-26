@@ -49,7 +49,7 @@ Relation::~Relation() {
         for (uint32_t i = 0; i < numTuples; ++i) {
             delete tuples[i];
         }
-        delete tuples;
+        delete[] tuples;
     }
 }
 

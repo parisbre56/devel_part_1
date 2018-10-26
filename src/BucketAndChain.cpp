@@ -110,8 +110,8 @@ void BucketAndChain::join(HashTable& hashToJoin,
 }
 
 BucketAndChain::~BucketAndChain() {
-    delete bucket;
-    delete chain;
+    delete[] bucket;
+    delete[] chain;
 }
 
 string BucketAndChain::toString() {
