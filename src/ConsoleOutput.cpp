@@ -20,7 +20,7 @@ ConsoleOutput::ConsoleOutput(bool debugEnabled) {
 }
 
 ConsoleOutput::~ConsoleOutput() {
-    // TODO Auto-generated destructor stub
+    //Nothing to clean
 }
 
 //Getters/Setters

@@ -15,13 +15,13 @@
 using namespace std;
 
 Result::Result() {
-    tuples = new Tuple[BLOCK_SIZE];
+    tuples = new Tuple[RESULT_H_BLOCK_SIZE];
     numTuples = 0;
     next = nullptr;
 }
 
 Result::Result(const Result& toCopy) {
-    tuples = new Tuple[BLOCK_SIZE];
+    tuples = new Tuple[RESULT_H_BLOCK_SIZE];
     copyValuesInternal(toCopy);
 }
 
@@ -114,7 +114,7 @@ Result* Result::getLastSegment() {
 
 void Result::addTuple(Tuple& toAdd) {
     Result* lastSegment = getLastSegment();
-    if (lastSegment->numTuples == BLOCK_SIZE) {
+    if (lastSegment->numTuples == RESULT_H_BLOCK_SIZE) {
         lastSegment->next = new Result();
         lastSegment = lastSegment->next;
     }

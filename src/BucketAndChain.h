@@ -23,13 +23,17 @@ protected:
     const ConsoleOutput * const consoleOutput;
     uint32_t * const bucket;
     uint32_t * const chain;
-
-    void debug(std::string outString);
-    void error(std::string outString);
 public:
     BucketAndChain() = delete;
     BucketAndChain(const BucketAndChain& toCopy) = delete;
     BucketAndChain& operator=(const BucketAndChain& toCopy) = delete;
+    /** Create a BucketAndChain subHashTable from the given bucket of the given hashTable.
+     *
+     * SubBuckets should be equal to the number of buckets returned by the hash function,
+     * though it can also work if it's greater.
+     *
+     * Note that the data of hashTable are NOT copied, so the hashTable should NOT
+     * be deleted before the BucketAndChain is. **/
     BucketAndChain(const HashTable& hashTable,
                    uint32_t bucket,
                    uint32_t subBuckets,

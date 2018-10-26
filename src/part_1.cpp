@@ -1,4 +1,3 @@
-//============================================================================
 // Name        : part_1.cpp
 // Author      : sdi1100070
 // Version     :
@@ -8,8 +7,10 @@
 
 #include <iostream>
 #include <string>
+
 #include <cstdint>
 #include <cmath>
+#include <ctime>
 
 #include "ConsoleOutput.h"
 #include "BucketAndChain.h"
@@ -20,13 +21,15 @@
 
 using namespace std;
 
-//TODO: Change to correct object type?
 Result radixHashJoin(Relation& relR, Relation& relS);
 uint32_t hashFunc(uint32_t buckets, int32_t toHash);
 uint32_t hashFuncChain(uint32_t buckets, int32_t toHash);
 
-#define HASH_BITS 3
-#define SUB_BUCKETS 10
+#define HASH_BITS 24
+#define SUB_BUCKETS 2048
+#define DIFF 10
+#define RELR 4000000
+#define RELS 4000000
 
 const uint32_t buckets = 1 << HASH_BITS; //2^n
 const uint32_t hashMask = (1 << HASH_BITS) - 1;
@@ -35,73 +38,107 @@ ConsoleOutput* consoleOutput;
 
 int main(int argc, char* argv[]) {
     //Use this to automatically handle deletion while keeping it global.
-    ConsoleOutput conOutT(true);
+    ConsoleOutput conOutT(false);
     consoleOutput = &conOutT;
-    consoleOutput->debugOutput("Starting Part 1 execution");
 
-    consoleOutput->debugOutput("Hash bits are: " + to_string(HASH_BITS));
-    consoleOutput->debugOutput("Hash mask is: " + to_string(hashMask));
+    consoleOutput->errorOutput("Hash bits are: " + to_string(HASH_BITS));
+    consoleOutput->errorOutput("Hash mask is: " + to_string(hashMask));
+    consoleOutput->errorOutput("buckets are: " + to_string(buckets));
+    consoleOutput->errorOutput("subBuckets are: " + to_string(SUB_BUCKETS));
+    consoleOutput->errorOutput("RELR are: " + to_string(RELR));
+    consoleOutput->errorOutput("RELS are: " + to_string(RELS));
+    consoleOutput->errorOutput("DIFF is: " + to_string(DIFF));
+    consoleOutput->errorOutput("Result block size tuples are: "
+                               + to_string(RESULT_H_BLOCK_SIZE));
+    consoleOutput->errorOutput("Result block size bytes are: "
+                               + to_string(RESULT_H_BLOCK_SIZE
+                                           * sizeof(Tuple)));
 
-    consoleOutput->debugOutput("Generating test data");
+    consoleOutput->errorOutput("PART_1 EXECUTION STARTED");
+    clock_t start = clock();
+
+    CO_IFDEBUG(consoleOutput, "Generating test data");
 
     //Generate R
-    consoleOutput->debugOutput("Generating table R");
-    Relation relR;
-    for (uint32_t i = 1; i <= 4; ++i) {
+    CO_IFDEBUG(consoleOutput, "Generating table R");
+    Relation relR(RELR);
+    for (uint32_t i = 1; i <= RELR; ++i) {
         Tuple temp(i, i);
         relR.addTuple(temp);
     }
-    consoleOutput->debugOutput("Table R generated");
-    consoleOutput->debugOutput(relR.toString());
+    CO_IFDEBUG(consoleOutput, "Table R generated");
+    CO_IFDEBUG(consoleOutput, relR.toString());
 
     //Generate S
-    consoleOutput->debugOutput("Generating table S");
-    Relation relS;
-    for (uint32_t i = 1; i <= 4; ++i) {
-        Tuple temp(i, (i % 2 == 0) ? (i - 1) : i);
-        relS.addTuple(temp);
+    CO_IFDEBUG(consoleOutput, "Generating table S");
+    Relation relS(RELS);
+    for (uint32_t i = 1; i <= RELS; i += DIFF) {
+        for (uint32_t j = i; j < i + DIFF; ++j) {
+            Tuple temp(j, i);
+            relS.addTuple(temp);
+        }
     }
-    consoleOutput->debugOutput("Table S generated");
-    consoleOutput->debugOutput(relS.toString());
+    CO_IFDEBUG(consoleOutput, "Table S generated");
+    CO_IFDEBUG(consoleOutput, relS.toString());
 
     //Perform join
-    consoleOutput->debugOutput("Starting radixHashJoin");
+    CO_IFDEBUG(consoleOutput, "Starting radixHashJoin");
+    clock_t joinStart = clock();
     Result result(radixHashJoin(relR, relS));
-    consoleOutput->debugOutput("radixHashJoin finished");
-    consoleOutput->debugOutput(result.toString());
+    clock_t end = clock();
+    CO_IFDEBUG(consoleOutput, "radixHashJoin finished");
+    CO_IFDEBUG(consoleOutput, result.toString());
+
+    consoleOutput->errorOutput("PART_1 EXECUTION ENDED");
+    consoleOutput->errorOutput("Load Time: "
+                               + to_string((joinStart - start)
+                                           / (double) CLOCKS_PER_SEC));
+    consoleOutput->errorOutput("Join Time: "
+                               + to_string((end - joinStart)
+                                           / (double) CLOCKS_PER_SEC));
+    consoleOutput->errorOutput("Total Time: "
+                               + to_string((end - start)
+                                           / (double) CLOCKS_PER_SEC));
+
+    //cout << result.toString() << endl;
 
     return 0;
 }
 
 Result radixHashJoin(Relation& relR, Relation& relS) {
+    consoleOutput->errorOutput("JOIN EXECUTION STARTED");
+
     HashTable rHash(relR, buckets, hashFunc, consoleOutput);
     HashTable sHash(relS, buckets, hashFunc, consoleOutput);
 
-    consoleOutput->debugOutput("rHash=" + rHash.toString());
-    consoleOutput->debugOutput("sHash=" + sHash.toString());
+    CO_IFDEBUG(consoleOutput, "rHash=" + rHash.toString());
+    CO_IFDEBUG(consoleOutput, "sHash=" + sHash.toString());
 
     Result retResult;
     for (uint32_t i = 0; i < buckets; ++i) {
+        CO_IFDEBUG(consoleOutput, "Processing bucket " + to_string(i));
+
         if (rHash.getTuplesInBucket(i) == 0
             || sHash.getTuplesInBucket(i) == 0) {
-            consoleOutput->debugOutput("Skipping bucket "
-                                       + to_string(i)
-                                       + ": 0 rows [R="
-                                       + to_string(rHash.getTuplesInBucket(i))
-                                       + ", S="
-                                       + to_string(sHash.getTuplesInBucket(i))
-                                       + "]");
+            CO_IFDEBUG(consoleOutput,
+                       "Skipping bucket "
+                       + to_string(i)
+                       + ": 0 rows [R="
+                       + to_string(rHash.getTuplesInBucket(i))
+                       + ", S="
+                       + to_string(sHash.getTuplesInBucket(i))
+                       + "]");
             continue;
         }
 
-        BucketAndChain rChain(rHash,
-                              i,
-                              SUB_BUCKETS,
-                              hashFuncChain,
-                              consoleOutput);
+        BucketAndChain rChain(rHash, i,
+        SUB_BUCKETS,
+                              hashFuncChain, consoleOutput);
+        CO_IFDEBUG(consoleOutput, "Created subHashTable " + rChain.toString());
         rChain.join(sHash, i, retResult);
     }
 
+    consoleOutput->errorOutput("JOIN EXECUTION ENDED");
     return retResult;
 }
 

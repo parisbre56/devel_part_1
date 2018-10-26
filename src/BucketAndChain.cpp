@@ -7,6 +7,8 @@
 
 #include "BucketAndChain.h"
 
+#include <sstream>
+
 using namespace std;
 
 BucketAndChain::BucketAndChain(const HashTable& hashTable,
@@ -22,74 +24,84 @@ BucketAndChain::BucketAndChain(const HashTable& hashTable,
         consoleOutput(consoleOutput),
         bucket(new uint32_t[subBuckets]),
         chain(new uint32_t[hashTable.getTuplesInBucket(hashBucket)] { }) {
-    debug("Splitting "
+    CO_IFDEBUG(consoleOutput,
+               "Splitting "
           + to_string(tuplesInBucket)
           + " tuples to "
-          + to_string(subBuckets)
+          + to_string(this->subBuckets)
           + " subBuckets");
 
     //Initialize tables to tuplesInBucket (that way we can tell when a position is unset)
-    debug("Initializing bucket");
-    for (uint32_t i = 0; i < subBuckets; ++i) {
+    CO_IFDEBUG(consoleOutput, "Initializing bucket");
+    for (uint32_t i = 0; i < this->subBuckets; ++i) {
         bucket[i] = tuplesInBucket;
     }
-    debug("Bucket initialized");
+    CO_IFDEBUG(consoleOutput, "Bucket initialized");
 
-    debug("Starting split");
+    CO_IFDEBUG(consoleOutput, "Starting split");
     for (uint32_t i = 0; i < tuplesInBucket; ++i) {
-        debug("Processing tuple " + to_string(i));
+        CO_IFDEBUG(consoleOutput, "Processing tuple " + to_string(i));
         const Tuple& currTuple = *(referenceTable[i]);
-        debug(to_string(i) + ":" + currTuple.toString());
+        CO_IFDEBUG(consoleOutput, to_string(i) + ":" + currTuple.toString());
 
         uint32_t currHash = this->hashFunction(this->subBuckets,
                                                currTuple.getPayload());
-        debug("Assigned to subBucket " + to_string(currHash));
+        CO_IFDEBUG(consoleOutput,
+                   "Assigned to subBucket " + to_string(currHash));
 
         //If this is the first time the bucket is used, then the end of the chain will
         //be initialized to tuplesInBucket
         chain[i] = bucket[currHash];
         bucket[currHash] = i;
 
-        debug("chain[i]=" + to_string(chain[i]));
-        debug("bucket[currHash]=" + to_string(bucket[currHash]));
+        CO_IFDEBUG(consoleOutput, "chain[i]=" + to_string(chain[i]));
+        CO_IFDEBUG(consoleOutput,
+                   "bucket[currHash]=" + to_string(bucket[currHash]));
     }
-    debug("Split complete");
+    CO_IFDEBUG(consoleOutput, "Split complete");
 
 }
 
 void BucketAndChain::join(HashTable& hashToJoin,
                           uint32_t bucketToJoin,
                           Result& resultAggregator) {
-    debug("Joining with bucket "
+    CO_IFDEBUG(consoleOutput,
+               "Joining with bucket "
           + to_string(bucketToJoin)
           + " of given hashTable");
     const Tuple* const * tuplesToJoin = hashToJoin.getBucket(bucketToJoin);
     uint32_t numTuplesToJoin = hashToJoin.getTuplesInBucket(bucketToJoin);
 
-    debug("Examining "
+    CO_IFDEBUG(consoleOutput,
+               "Examining "
           + to_string(numTuplesToJoin)
           + " tuples in given hashTable");
     for (uint32_t i = 0; i < numTuplesToJoin; ++i) {
-        debug("Examining tuple " + i);
+        CO_IFDEBUG(consoleOutput, "Examining tuple " + i);
         const Tuple& currTuple = *(tuplesToJoin[i]);
-        debug("o" + to_string(i) + ":" + currTuple.toString());
+        CO_IFDEBUG(consoleOutput,
+                   "o" + to_string(i) + ":" + currTuple.toString());
 
         uint32_t currHash = this->hashFunction(subBuckets,
                                                currTuple.getPayload());
-        debug("Searching subBucket " + to_string(currHash));
+        CO_IFDEBUG(consoleOutput, "Searching subBucket " + to_string(currHash));
 
         uint32_t searchPoint = bucket[currHash];
-        debug("Searching chain with start point " + to_string(searchPoint));
+        CO_IFDEBUG(consoleOutput,
+                   "Searching chain with start point " + to_string(searchPoint));
         while (searchPoint != tuplesInBucket) {
-            debug("Searching chain point " + to_string(searchPoint));
+            CO_IFDEBUG(consoleOutput,
+                       "Searching chain point " + to_string(searchPoint));
             const Tuple& searchPointTuple = *(referenceTable[searchPoint]);
-            debug("c"
+            CO_IFDEBUG(consoleOutput,
+                       "c"
                   + to_string(searchPoint)
                   + ":"
                   + searchPointTuple.toString());
             if (searchPointTuple.getPayload() == currTuple.getPayload()) {
                 Tuple joinRow(searchPointTuple.getKey(), currTuple.getKey());
-                debug("Adding joinRow " + joinRow.toString());
+                CO_IFDEBUG(consoleOutput,
+                           "Adding joinRow " + joinRow.toString());
                 resultAggregator.addTuple(joinRow);
             }
             searchPoint = chain[searchPoint];
@@ -102,14 +114,32 @@ BucketAndChain::~BucketAndChain() {
     delete chain;
 }
 
-void BucketAndChain::debug(string outString) {
-    if (consoleOutput != nullptr) {
-        consoleOutput->debugOutput(outString);
+string BucketAndChain::toString() {
+    ostringstream retVal;
+    retVal << "[BucketAndChain tuplesInBucket="
+           << to_string(tuplesInBucket)
+           << ", subBuckets="
+           << to_string(subBuckets)
+           << ", hashFunction="
+           << (void*) hashFunction
+           << ", consoleOutput="
+           << consoleOutput
+           << ", bucket=[";
+    for (uint32_t i = 0; i < subBuckets; ++i) {
+        if (i != 0) {
+            retVal << ", ";
+        }
+        retVal << to_string(bucket[i]);
     }
-}
-
-void BucketAndChain::error(string outString) {
-    if (consoleOutput != nullptr) {
-        consoleOutput->errorOutput(outString);
+    retVal << "], chain:referenceTable=[";
+    for (uint32_t i = 0; i < tuplesInBucket; ++i) {
+        retVal << "\n\t"
+               << to_string(i)
+               << ":\t"
+               << to_string(chain[i])
+               << ":\t"
+               << referenceTable[i]->toString();
     }
+    retVal << "]]";
+    return retVal.str();
 }

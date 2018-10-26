@@ -10,34 +10,35 @@
 #include <sstream>
 #include <stdexcept>
 
-#define DEFAULT_TUPLE_LENGTH 100
-#define DEFAULT_INCREASE 100
-
 using namespace std;
 
-Relation::Relation() {
+Relation::Relation(uint32_t arraySize, uint32_t arrayIncrementSize) {
     numTuples = 0;
-    arraySize = DEFAULT_TUPLE_LENGTH;
-    tuples = new const Tuple*[DEFAULT_TUPLE_LENGTH];
+    this->arraySize = arraySize;
+    tuples = new const Tuple*[this->arraySize];
+    this->arrayIncrementSize = arrayIncrementSize;
 }
 
 Relation::Relation(uint32_t numOfTuplesToCopy,
-                   const Tuple* const * const tuplesToCopy) {
+                   const Tuple* const * const tuplesToCopy,
+                   uint32_t arrayIncrementSizeToCopy) {
     numTuples = numOfTuplesToCopy;
     arraySize = numOfTuplesToCopy;
     tuples = new const Tuple*[numOfTuplesToCopy];
     for (uint32_t i; i < numOfTuplesToCopy; ++i) {
         tuples[i] = new const Tuple(*(tuplesToCopy[i]));
     }
+    arrayIncrementSize = arrayIncrementSizeToCopy;
 }
 
 Relation::Relation(const Relation& toCopy) :
-        Relation(toCopy.numTuples, toCopy.tuples) {
+        Relation(toCopy.numTuples, toCopy.tuples, toCopy.arrayIncrementSize) {
 }
 
 Relation::Relation(Relation&& toMove) {
     numTuples = toMove.numTuples;
     arraySize = toMove.arraySize;
+    arrayIncrementSize = toMove.arrayIncrementSize;
     tuples = toMove.tuples;
     toMove.tuples = nullptr;
 }
@@ -68,7 +69,7 @@ void Relation::addTuple(Tuple& tuple) {
     //If we reached the array limit
     if (numTuples == arraySize) {
         //Create copy with new size
-        uint32_t new_array_size = arraySize + DEFAULT_INCREASE;
+        uint32_t new_array_size = arraySize + arrayIncrementSize;
         const Tuple** new_tuples = new const Tuple*[new_array_size];
 
         //Copy old to new

@@ -36,20 +36,21 @@ HashTable::HashTable(const Relation& relation,
                             + "]");
     }
 
-    debug("Splitting "
+    CO_IFDEBUG(consoleOutput,
+               "Splitting "
           + to_string(numTuples)
           + " tuples to "
           + to_string(this->buckets)
           + " buckets");
 
-    debug("Generating histogram");
+    CO_IFDEBUG(consoleOutput, "Generating histogram");
     for (uint32_t i = 0; i < numTuples; ++i) {
-        debug("Processing tuple " + to_string(i));
+        CO_IFDEBUG(consoleOutput, "Processing tuple " + to_string(i));
         const Tuple& toCheck = relation.getTuple(i);
-        debug(to_string(i) + ":" + toCheck.toString());
+        CO_IFDEBUG(consoleOutput, to_string(i) + ":" + toCheck.toString());
 
         uint32_t currHash = this->hashFunction(buckets, toCheck.getPayload());
-        debug("Assigned to bucket " + to_string(currHash));
+        CO_IFDEBUG(consoleOutput, "Assigned to bucket " + to_string(currHash));
         histogram[currHash]++;
     }
     if (consoleOutput != nullptr && consoleOutput->getDebugEnabled()) {
@@ -66,11 +67,12 @@ HashTable::HashTable(const Relation& relation,
         }
     }
 
-    debug("Generating psum");
+    CO_IFDEBUG(consoleOutput, "Generating psum");
     {
         uint32_t prevSum = 0;
         for (uint32_t i = 0; i < buckets; ++i) {
-            debug("[bucket="
+            CO_IFDEBUG(consoleOutput,
+                       "[bucket="
                   + to_string(i)
                   + ", pSum="
                   + to_string(prevSum)
@@ -80,23 +82,24 @@ HashTable::HashTable(const Relation& relation,
             histogram[i] = 0; //Just so that we don't create a new array, we reuse the histogram array
         }
     }
-    debug("Psum generated");
+    CO_IFDEBUG(consoleOutput, "Psum generated");
 
-    debug("Copying Tuples");
+    CO_IFDEBUG(consoleOutput, "Copying Tuples");
     for (uint32_t i = 0; i < numTuples; ++i) {
-        debug("Processing tuple " + to_string(i));
+        CO_IFDEBUG(consoleOutput, "Processing tuple " + to_string(i));
         const Tuple& toCheck = relation.getTuple(i);
-        debug(to_string(i) + ":" + toCheck.toString());
+        CO_IFDEBUG(consoleOutput, to_string(i) + ":" + toCheck.toString());
 
         uint32_t currHash = this->hashFunction(buckets, toCheck.getPayload());
-        debug("Copying to bucket "
+        CO_IFDEBUG(consoleOutput,
+                   "Copying to bucket "
               + to_string(currHash)
               + " position "
               + to_string(histogram[currHash]));
         orderedTuples[pSum[currHash] + histogram[currHash]] = new Tuple(toCheck);
         histogram[currHash]++;
     }
-    debug("Tuples copied");
+    CO_IFDEBUG(consoleOutput, "Tuples copied");
 }
 
 HashTable::HashTable(const HashTable & toCopy) :
@@ -216,16 +219,4 @@ string HashTable::toString() const {
     }
     retVal << "]]";
     return retVal.str();
-}
-
-void HashTable::debug(string outString) {
-    if (consoleOutput != nullptr) {
-        consoleOutput->debugOutput(outString);
-    }
-}
-
-void HashTable::error(string outString) {
-    if (consoleOutput != nullptr) {
-        consoleOutput->errorOutput(outString);
-    }
 }

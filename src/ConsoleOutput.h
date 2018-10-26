@@ -8,6 +8,13 @@
 #ifndef CONSOLEOUTPUT_H_
 #define CONSOLEOUTPUT_H_
 
+//Only executes debug code if debug is enabled
+#ifdef NDEBUG
+#define CO_IFDEBUG(consoleOutput, toPrint) ((void)0); //NOOP
+#else
+#define CO_IFDEBUG(consoleOutput, toPrint) if(consoleOutput != nullptr && consoleOutput->getDebugEnabled()) {consoleOutput->debugOutput(toPrint);}
+#endif //NDEBUG
+
 #include <string>
 
 class ConsoleOutput {

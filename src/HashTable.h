@@ -24,9 +24,6 @@ protected:
     uint32_t * const histogram;
     uint32_t * const pSum;
     const Tuple ** const orderedTuples;
-
-    void debug(std::string outString);
-    void error(std::string outString);
 public:
     HashTable() = delete;
     /** Create a hashTable for the given relation, using the given number

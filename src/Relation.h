@@ -14,21 +14,27 @@
 
 #include "Tuple.h"
 
+#define RELATION_H_DEFAULT_TUPLE_LENGTH 1000
+#define RELATION_H_DEFAULT_INCREASE 1000
+
 class Relation {
 protected:
     const Tuple** tuples;
     uint32_t numTuples;
 
     uint32_t arraySize;
+    uint32_t arrayIncrementSize;
 public:
     /** Creates a new Relation with no tuples stored
      * and a predefined number of empty spaces in the
      * table. **/
-    Relation();
+    Relation(uint32_t arraySize = RELATION_H_DEFAULT_TUPLE_LENGTH,
+             uint32_t arrayIncrementSize = RELATION_H_DEFAULT_INCREASE);
     /** Creates a new Relation by copying the given number
      * of tuples from the given table. **/
     Relation(uint32_t numOfTuplesToCopy,
-             const Tuple * const * const tuplesToCopy);
+             const Tuple * const * const tuplesToCopy,
+             uint32_t arrayIncrementSizeToCopy = RELATION_H_DEFAULT_INCREASE);
     /** Copy constructor, copies the filled part of the
      * underlying array from another Relation. **/
     Relation(const Relation& toCopy);

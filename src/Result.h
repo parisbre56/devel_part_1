@@ -14,7 +14,7 @@
 #include "Tuple.h"
 
 //1MB divided by size of Tuple gives us the number of Tuple we can store
-#define BLOCK_SIZE (1024*1024)/sizeof(Tuple)
+#define RESULT_H_BLOCK_SIZE (1024*1024)/sizeof(Tuple)
 
 class Result {
 protected:
