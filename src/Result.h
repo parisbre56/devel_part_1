@@ -52,7 +52,7 @@ public:
      * adding another segment automatically if necessary **/
     void addTuple(Tuple& toAdd);
 
-    std::string toString() const;
+    friend std::ostream& operator<<(std::ostream& os, const Result& toPrint);
 };
 
 #endif /* RESULT_H_ */

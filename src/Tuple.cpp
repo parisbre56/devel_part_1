@@ -51,8 +51,11 @@ void Tuple::setPayload(int32_t payload) {
     this->payload = payload;
 }
 
-string Tuple::toString() const {
-    ostringstream retVal;
-    retVal << "[Tuple key=" << key << ", payload=" << payload << "]";
-    return retVal.str();
+std::ostream& operator<<(std::ostream& os, const Tuple& toPrint) {
+    os << "[Tuple key="
+       << toPrint.key
+       << ", payload="
+       << toPrint.payload
+       << "]";
+    return os;
 }

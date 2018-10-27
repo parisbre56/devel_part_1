@@ -58,7 +58,7 @@ public:
     /** Get the tuple at the given index. **/
     const Tuple& getTuple(uint32_t index) const;
 
-    std::string toString() const;
+    friend std::ostream& operator<<(std::ostream& os, const Relation& toPrint);
 };
 
 #endif /* RELATION_H_ */

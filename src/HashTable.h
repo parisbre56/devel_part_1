@@ -47,8 +47,7 @@ public:
     const Tuple * const * const getBucket(uint32_t bucket) const;
     /** Get the (index) element of the (bucket) bucket **/
     const Tuple& getTuple(uint32_t bucket, uint32_t index) const;
-
-    std::string toString() const;
+    friend std::ostream& operator<<(std::ostream& os, const HashTable& toPrint);
 };
 
 #endif /* HASHTABLE_H_ */

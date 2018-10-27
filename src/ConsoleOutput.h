@@ -12,7 +12,7 @@
 #ifdef NDEBUG
 #define CO_IFDEBUG(consoleOutput, toPrint) ((void)0); //NOOP
 #else
-#define CO_IFDEBUG(consoleOutput, toPrint) if(consoleOutput.getDebugEnabled()) {consoleOutput.debugOutput(toPrint);}
+#define CO_IFDEBUG(consoleOutput, toPrint) if(consoleOutput.getDebugEnabled()) {consoleOutput.debugOutput() << toPrint << endl;}
 #endif //NDEBUG
 
 #include <string>
@@ -25,14 +25,14 @@ public:
     static bool debugEnabledDefault;
 
     ConsoleOutput(std::string label);
-    ConsoleOutput(bool debugEnabled, std::string label);
+    ConsoleOutput(std::string label, bool debugEnabled);
     virtual ~ConsoleOutput();
 
     bool const getDebugEnabled() const;
     void setDebugEnabled(bool debugEnabled);
 
-    void debugOutput(std::string outString) const;
-    void errorOutput(std::string outString) const;
+    std::ostream& debugOutput() const;
+    std::ostream& errorOutput() const;
 };
 
 #endif /* CONSOLEOUTPUT_H_ */

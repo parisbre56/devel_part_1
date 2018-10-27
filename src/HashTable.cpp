@@ -36,65 +36,56 @@ HashTable::HashTable(const Relation& relation,
     }
 
     CO_IFDEBUG(consoleOutput,
-               "Splitting "
-               + to_string(numTuples)
-               + " tuples to "
-               + to_string(this->buckets)
-               + " buckets");
+               "Splitting " << numTuples << " tuples to " << (this->buckets) << " buckets");
 
     CO_IFDEBUG(consoleOutput, "Generating histogram");
     for (uint32_t i = 0; i < numTuples; ++i) {
-        CO_IFDEBUG(consoleOutput, "Processing tuple " + to_string(i));
+        CO_IFDEBUG(consoleOutput, "Processing tuple " << i);
         const Tuple& toCheck = relation.getTuple(i);
-        CO_IFDEBUG(consoleOutput, to_string(i) + ":" + toCheck.toString());
+        CO_IFDEBUG(consoleOutput, i << ":" << toCheck);
 
         uint32_t currHash = this->hashFunction(buckets, toCheck.getPayload());
-        CO_IFDEBUG(consoleOutput, "Assigned to bucket " + to_string(currHash));
+        CO_IFDEBUG(consoleOutput, "Assigned to bucket " << currHash);
         histogram[currHash]++;
     }
     if (consoleOutput.getDebugEnabled()) {
-        consoleOutput.debugOutput("Created histogram with "
-                                  + to_string(buckets)
-                                  + " buckets");
+        consoleOutput.debugOutput() << "Created histogram with "
+                                    << buckets
+                                    << " buckets"
+                                    << endl;
 
         for (uint32_t i = 0; i < buckets; ++i) {
-            consoleOutput.debugOutput("[bucket="
-                                      + to_string(i)
-                                      + ", size="
-                                      + to_string(histogram[i])
-                                      + "]");
+            consoleOutput.debugOutput() << "\t[bucket="
+                                        << i
+                                        << ", size="
+                                        << histogram[i]
+                                        << "]"
+                                        << endl;
         }
     }
 
-    CO_IFDEBUG(consoleOutput, "Generating psum");
+    CO_IFDEBUG(consoleOutput, "Generating pSum");
     {
         uint32_t prevSum = 0;
         for (uint32_t i = 0; i < buckets; ++i) {
             CO_IFDEBUG(consoleOutput,
-                       "[bucket="
-                       + to_string(i)
-                       + ", pSum="
-                       + to_string(prevSum)
-                       + "]");
+                       "\t[bucket=" << i << ", pSum=" << prevSum << "]");
             pSum[i] = prevSum;
             prevSum += histogram[i];
             histogram[i] = 0; //Just so that we don't create a new array, we reuse the histogram array
         }
     }
-    CO_IFDEBUG(consoleOutput, "Psum generated");
+    CO_IFDEBUG(consoleOutput, "pSum generated");
 
     CO_IFDEBUG(consoleOutput, "Copying Tuples");
     for (uint32_t i = 0; i < numTuples; ++i) {
-        CO_IFDEBUG(consoleOutput, "Processing tuple " + to_string(i));
+        CO_IFDEBUG(consoleOutput, "Processing tuple " << i);
         const Tuple& toCheck = relation.getTuple(i);
-        CO_IFDEBUG(consoleOutput, to_string(i) + ":" + toCheck.toString());
+        CO_IFDEBUG(consoleOutput, i << ":" << toCheck);
 
         uint32_t currHash = this->hashFunction(buckets, toCheck.getPayload());
         CO_IFDEBUG(consoleOutput,
-                   "Copying to bucket "
-                   + to_string(currHash)
-                   + " position "
-                   + to_string(histogram[currHash]));
+                   "Copying to bucket " << currHash << " position " << histogram[currHash]);
         orderedTuples[pSum[currHash] + histogram[currHash]] = new Tuple(toCheck);
         histogram[currHash]++;
     }
@@ -176,43 +167,42 @@ const Tuple& HashTable::getTuple(uint32_t bucket, uint32_t index) const {
     return *(orderedTuples[pSum[bucket] + index]);
 }
 
-string HashTable::toString() const {
-    ostringstream retVal;
-    retVal << "[HashTable buckets="
-           << buckets
-           << ", numTuples="
-           << numTuples
-           << ", hashFunction="
-           << (void*) hashFunction
-           << ", histogram=[";
-    for (uint32_t i = 0; i < buckets; ++i) {
+std::ostream& operator<<(std::ostream& os, const HashTable& toPrint) {
+    os << "[HashTable buckets="
+       << toPrint.buckets
+       << ", numTuples="
+       << toPrint.numTuples
+       << ", hashFunction="
+       << ((void*) toPrint.hashFunction)
+       << ", histogram=[";
+    for (uint32_t i = 0; i < toPrint.buckets; ++i) {
         if (i != 0) {
-            retVal << ", ";
+            os << ", ";
         }
-        retVal << histogram[i];
+        os << toPrint.histogram[i];
     }
-    retVal << "], pSum=[";
-    for (uint32_t i = 0; i < buckets; ++i) {
+    os << "], pSum=[";
+    for (uint32_t i = 0; i < toPrint.buckets; ++i) {
         if (i != 0) {
-            retVal << ", ";
+            os << ", ";
         }
-        retVal << pSum[i];
+        os << toPrint.pSum[i];
     }
-    retVal << "], orderedTuples=[";
-    for (uint32_t i = 0; i < buckets; ++i) {
-        retVal << "\n\tBucket #" << i;
-        uint32_t bucketStart = pSum[i];
-        uint32_t numInBucket = histogram[i];
+    os << "], orderedTuples=[";
+    for (uint32_t i = 0; i < toPrint.buckets; ++i) {
+        os << "\n\tBucket #" << i;
+        uint32_t bucketStart = toPrint.pSum[i];
+        uint32_t numInBucket = toPrint.histogram[i];
         for (uint32_t j = 0; j < numInBucket; ++j) {
             uint32_t pos = bucketStart + j;
-            retVal << "\n\t\t<"
-                   << pos
-                   << ","
-                   << j
-                   << ">: "
-                   << (orderedTuples[pos])->toString();
+            os << "\n\t\t<"
+               << pos
+               << ","
+               << j
+               << ">: "
+               << (*(toPrint.orderedTuples[pos]));
         }
     }
-    retVal << "]]";
-    return retVal.str();
+    os << "]]";
+    return os;
 }

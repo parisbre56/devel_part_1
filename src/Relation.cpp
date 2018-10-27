@@ -100,23 +100,22 @@ const Tuple& Relation::getTuple(uint32_t index) const {
     return *(tuples[index]);
 }
 
-string Relation::toString() const {
-    ostringstream retVal;
-    retVal << "[Relation array_size="
-           << arraySize
-           << ", num_tuples="
-           << numTuples
-           << ", tuples=";
-    if (tuples == nullptr) {
-        retVal << "null";
+std::ostream& operator<<(std::ostream& os, const Relation& toPrint) {
+    os << "[Relation array_size="
+       << toPrint.arraySize
+       << ", num_tuples="
+       << toPrint.numTuples
+       << ", tuples=";
+    if (toPrint.tuples == nullptr) {
+        os << "null";
     }
     else {
-        retVal << "[";
-        for (uint32_t i = 0; i < numTuples; ++i) {
-            retVal << "\n\t" << i << ": " << tuples[i]->toString();
+        os << "[";
+        for (uint32_t i = 0; i < toPrint.numTuples; ++i) {
+            os << "\n\t" << i << ": " << (*(toPrint.tuples[i]));
         }
-        retVal << "]";
+        os << "]";
     }
-    retVal << "]";
-    return retVal.str();
+    os << "]";
+    return os;
 }

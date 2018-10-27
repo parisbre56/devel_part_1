@@ -126,19 +126,25 @@ void Result::addTuple(Tuple& toAdd) {
     lastSegment->numTuples++;
 }
 
-string Result::toString() const {
-    ostringstream retVal;
-    retVal << "[Result numTuples=" << numTuples << ", tuples=";
-    if (tuples == nullptr) {
-        retVal << "null";
+std::ostream& operator<<(std::ostream& os, const Result& toPrint) {
+    os << "[Result numTuples=" << toPrint.numTuples << ", tuples=";
+    if (toPrint.tuples == nullptr) {
+        os << "null";
     }
     else {
-        retVal << "[";
-        for (uint32_t i = 0; i < numTuples; ++i) {
-            retVal << "\n\t" << i << ": " << tuples[i].toString();
+        os << "[";
+        for (uint32_t i = 0; i < toPrint.numTuples; ++i) {
+            os << "\n\t" << i << ": " << toPrint.tuples[i];
         }
-        retVal << "]";
+        os << "]";
     }
-    retVal << ", next=" << (next == nullptr ? "null" : next->toString()) << "]";
-    return retVal.str();
+    os << ", next=";
+    if (toPrint.next == nullptr) {
+        os << "null";
+    }
+    else {
+        os << (*(toPrint.next));
+    }
+    os << "]";
+    return os;
 }

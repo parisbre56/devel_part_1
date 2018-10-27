@@ -33,7 +33,7 @@ public:
     int32_t getPayload() const;
     void setPayload(int32_t payload);
 
-    std::string toString() const;
+    friend std::ostream& operator<<(std::ostream& os, const Tuple& toPrint);
 };
 
 #endif /* TUPLE_H_ */

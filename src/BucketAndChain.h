@@ -1,7 +1,7 @@
 /*
  * BucketAndChain.h
  *
- *  Created on: 23 Οκτ 2018
+ *  Created on: 23 Ξ�ΞΊΟ„ 2018
  *      Author: pibre
  */
 
@@ -17,6 +17,7 @@
 class BucketAndChain {
 protected:
     const Tuple * const * const referenceTable;
+    /** tuplesInBucket's value is used to show the end of a chain or a bucket with no values. **/
     const uint32_t tuplesInBucket;
     const uint32_t subBuckets;
     uint32_t (* const hashFunction)(uint32_t, int32_t);
@@ -43,7 +44,8 @@ public:
               uint32_t bucketToJoin,
               Result& resultAggregator);
 
-    std::string toString();
+    friend std::ostream& operator<<(std::ostream& os,
+                                    const BucketAndChain& toPrint);
 };
 
 #endif /* BUCKETANDCHAIN_H_ */

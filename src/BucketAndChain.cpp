@@ -24,11 +24,7 @@ BucketAndChain::BucketAndChain(const HashTable& hashTable,
         chain(new uint32_t[hashTable.getTuplesInBucket(hashBucket)] { }) {
     ConsoleOutput consoleOutput("BucketAndChain");
     CO_IFDEBUG(consoleOutput,
-               "Splitting "
-               + to_string(tuplesInBucket)
-               + " tuples to "
-               + to_string(this->subBuckets)
-               + " subBuckets");
+               "Splitting " << tuplesInBucket << " tuples to " << this->subBuckets << " subBuckets");
 
     //Initialize tables to tuplesInBucket (that way we can tell when a position is unset)
     CO_IFDEBUG(consoleOutput, "Initializing bucket");
@@ -39,23 +35,21 @@ BucketAndChain::BucketAndChain(const HashTable& hashTable,
 
     CO_IFDEBUG(consoleOutput, "Starting split");
     for (uint32_t i = 0; i < tuplesInBucket; ++i) {
-        CO_IFDEBUG(consoleOutput, "Processing tuple " + to_string(i));
+        CO_IFDEBUG(consoleOutput, "Processing tuple " << i);
         const Tuple& currTuple = *(referenceTable[i]);
-        CO_IFDEBUG(consoleOutput, to_string(i) + ":" + currTuple.toString());
+        CO_IFDEBUG(consoleOutput, i << ":" << currTuple);
 
         uint32_t currHash = this->hashFunction(this->subBuckets,
                                                currTuple.getPayload());
-        CO_IFDEBUG(consoleOutput,
-                   "Assigned to subBucket " + to_string(currHash));
+        CO_IFDEBUG(consoleOutput, "Assigned to subBucket " << currHash);
 
         //If this is the first time the bucket is used, then the end of the chain will
         //be initialized to tuplesInBucket
         chain[i] = bucket[currHash];
         bucket[currHash] = i;
 
-        CO_IFDEBUG(consoleOutput, "chain[i]=" + to_string(chain[i]));
-        CO_IFDEBUG(consoleOutput,
-                   "bucket[currHash]=" + to_string(bucket[currHash]));
+        CO_IFDEBUG(consoleOutput, "chain[i]=" << chain[i]);
+        CO_IFDEBUG(consoleOutput, "bucket[currHash]=" << bucket[currHash]);
     }
     CO_IFDEBUG(consoleOutput, "Split complete");
 
@@ -64,44 +58,34 @@ BucketAndChain::BucketAndChain(const HashTable& hashTable,
 void BucketAndChain::join(HashTable& hashToJoin,
                           uint32_t bucketToJoin,
                           Result& resultAggregator) {
-    ConsoleOutput consoleOutput("JOIN");
+    ConsoleOutput consoleOutput("BucketAndChain::join");
     CO_IFDEBUG(consoleOutput,
-               "Joining with bucket "
-               + to_string(bucketToJoin)
-               + " of given hashTable");
+               "Joining with bucket " << bucketToJoin << " of given hashTable");
     const Tuple* const * tuplesToJoin = hashToJoin.getBucket(bucketToJoin);
     uint32_t numTuplesToJoin = hashToJoin.getTuplesInBucket(bucketToJoin);
 
     CO_IFDEBUG(consoleOutput,
-               "Examining "
-               + to_string(numTuplesToJoin)
-               + " tuples in given hashTable");
+               "Examining " << numTuplesToJoin << " tuples in given hashTable");
     for (uint32_t i = 0; i < numTuplesToJoin; ++i) {
-        CO_IFDEBUG(consoleOutput, "Examining tuple " + i);
+        CO_IFDEBUG(consoleOutput, "Examining tuple " << i);
         const Tuple& currTuple = *(tuplesToJoin[i]);
-        CO_IFDEBUG(consoleOutput,
-                   "o" + to_string(i) + ":" + currTuple.toString());
+        CO_IFDEBUG(consoleOutput, "o" << i << ":" << currTuple);
 
         uint32_t currHash = this->hashFunction(subBuckets,
                                                currTuple.getPayload());
-        CO_IFDEBUG(consoleOutput, "Searching subBucket " + to_string(currHash));
+        CO_IFDEBUG(consoleOutput, "Searching subBucket " << currHash);
 
         uint32_t searchPoint = bucket[currHash];
         CO_IFDEBUG(consoleOutput,
-                   "Searching chain with start point " + to_string(searchPoint));
+                   "Searching chain with start point " << searchPoint);
         while (searchPoint != tuplesInBucket) {
-            CO_IFDEBUG(consoleOutput,
-                       "Searching chain point " + to_string(searchPoint));
+            CO_IFDEBUG(consoleOutput, "Searching chain point " << searchPoint);
             const Tuple& searchPointTuple = *(referenceTable[searchPoint]);
             CO_IFDEBUG(consoleOutput,
-                       "c"
-                       + to_string(searchPoint)
-                       + ":"
-                       + searchPointTuple.toString());
+                       "c" << searchPoint << ":" << searchPointTuple);
             if (searchPointTuple.getPayload() == currTuple.getPayload()) {
                 Tuple joinRow(searchPointTuple.getKey(), currTuple.getKey());
-                CO_IFDEBUG(consoleOutput,
-                           "Adding joinRow " + joinRow.toString());
+                CO_IFDEBUG(consoleOutput, "Adding joinRow " << joinRow);
                 resultAggregator.addTuple(joinRow);
             }
             searchPoint = chain[searchPoint];
@@ -114,30 +98,30 @@ BucketAndChain::~BucketAndChain() {
     delete[] chain;
 }
 
-string BucketAndChain::toString() {
-    ostringstream retVal;
-    retVal << "[BucketAndChain tuplesInBucket="
-           << to_string(tuplesInBucket)
-           << ", subBuckets="
-           << to_string(subBuckets)
-           << ", hashFunction="
-           << (void*) hashFunction
-           << ", bucket=[";
-    for (uint32_t i = 0; i < subBuckets; ++i) {
+std::ostream& operator<<(std::ostream& os, const BucketAndChain& toPrint) {
+    os << "[BucketAndChain tuplesInBucket="
+       << toPrint.tuplesInBucket
+       << ", subBuckets="
+       << toPrint.subBuckets
+       << ", hashFunction="
+       << ((void*) toPrint.hashFunction)
+       << ", bucket=[";
+    for (uint32_t i = 0; i < toPrint.subBuckets; ++i) {
         if (i != 0) {
-            retVal << ", ";
+            os << ", ";
         }
-        retVal << to_string(bucket[i]);
+        os << toPrint.bucket[i];
     }
-    retVal << "], chain:referenceTable=[";
-    for (uint32_t i = 0; i < tuplesInBucket; ++i) {
-        retVal << "\n\t"
-               << to_string(i)
-               << ":\t"
-               << to_string(chain[i])
-               << ":\t"
-               << referenceTable[i]->toString();
+    os << "], i:chain[i]:referenceTable[i]=[";
+    for (uint32_t i = 0; i < toPrint.tuplesInBucket; ++i) {
+        os << "\n\t"
+           << i
+           << ":\t"
+           << toPrint.chain[i]
+           << ":\t"
+           << (*(toPrint.referenceTable[i]));
     }
-    retVal << "]]";
-    return retVal.str();
+    os << "]]";
+    return os;
 }
+
