@@ -17,25 +17,25 @@
 #include "Tuple.h"
 #include "HashTable.h"
 #include "Relation.h"
-#include "Result.h"
+#include "ResultContainer.h"
 
 using namespace std;
 
-Result radixHashJoin(Relation& relR, Relation& relS);
+ResultContainer radixHashJoin(Relation& relR, Relation& relS);
 uint32_t hashFunc(uint32_t buckets, int32_t toHash);
 uint32_t hashFuncChain(uint32_t buckets, int32_t toHash);
 
 #define HASH_BITS 24
 #define SUB_BUCKETS 2048
 #define DIFF 10
-#define RELR 4000000
-#define RELS 4000
+#define RELR 40000000
+#define RELS 40000
 
 const uint32_t buckets = 1 << HASH_BITS; //2^n
 const uint32_t hashMask = (1 << HASH_BITS) - 1;
 
 int main(int argc, char* argv[]) {
-    ConsoleOutput::debugEnabledDefault = true;
+    ConsoleOutput::debugEnabledDefault = false;
     ConsoleOutput consoleOutput("Main");
 
     consoleOutput.errorOutput() << "Hash bits are: " << HASH_BITS << endl;
@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
     //Perform join
     CO_IFDEBUG(consoleOutput, "Starting radixHashJoin");
     clock_t joinStart = clock();
-    Result result(radixHashJoin(relR, relS));
+    ResultContainer result(radixHashJoin(relR, relS));
     clock_t end = clock();
     CO_IFDEBUG(consoleOutput, "radixHashJoin finished");
     CO_IFDEBUG(consoleOutput, result);
@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-Result radixHashJoin(Relation& relR, Relation& relS) {
+ResultContainer radixHashJoin(Relation& relR, Relation& relS) {
     ConsoleOutput consoleOutput("RadixHashJoin");
     consoleOutput.errorOutput() << "JOIN EXECUTION STARTED" << endl;
 
@@ -112,7 +112,7 @@ Result radixHashJoin(Relation& relR, Relation& relS) {
     CO_IFDEBUG(consoleOutput, "rHash=" << rHash);
     CO_IFDEBUG(consoleOutput, "sHash=" << sHash);
 
-    Result retResult;
+    ResultContainer retResult;
     for (uint32_t i = 0; i < buckets; ++i) {
         CO_IFDEBUG(consoleOutput, "Processing bucket " << i);
 
