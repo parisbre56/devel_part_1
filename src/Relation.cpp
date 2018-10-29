@@ -25,7 +25,7 @@ Relation::Relation(uint32_t numOfTuplesToCopy,
     numTuples = numOfTuplesToCopy;
     arraySize = numOfTuplesToCopy;
     tuples = new const Tuple*[numOfTuplesToCopy];
-    for (uint32_t i; i < numOfTuplesToCopy; ++i) {
+    for (uint32_t i = 0; i < numOfTuplesToCopy; ++i) {
         tuples[i] = new const Tuple(*(tuplesToCopy[i]));
     }
     arrayIncrementSize = arrayIncrementSizeToCopy;

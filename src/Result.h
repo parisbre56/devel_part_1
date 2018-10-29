@@ -22,7 +22,6 @@ protected:
     uint32_t numTuples;
     Result* next;
 
-    Result* getLastSegment();
     void copyValuesInternal(const Result& toCopy);
     void moveValuesInternal(Result& toMove);
 
@@ -48,9 +47,17 @@ public:
     /** The number of tuples in this segment **/
     uint32_t getNumTuples() const;
 
+    /** Returns the last segment for this chain of results. **/
+    Result* getLastSegment();
+    /** Return the first non-full segment. Or the last segment if none exist. **/
+    Result* getFirstNonFullSegment();
+
     /** Add a copy of the Tuple to the array of tuples,
-     * adding another segment automatically if necessary **/
-    void addTuple(Tuple& toAdd);
+     * adding another segment automatically if necessary.
+     * Returns the segment into which the tuple was inserted
+     * if it was inserted into a segment other than this
+     * or null if it was inserted to this segment. **/
+    Result* addTuple(Tuple& toAdd);
 
     friend std::ostream& operator<<(std::ostream& os, const Result& toPrint);
 };

@@ -22,7 +22,7 @@ protected:
     uint32_t (* const hashFunction)(uint32_t, int32_t);
     uint32_t * const histogram;
     uint32_t * const pSum;
-    const Tuple ** const orderedTuples;
+    Tuple * const orderedTuples;
 public:
     HashTable() = delete;
     /** Create a hashTable for the given relation, using the given number
@@ -44,7 +44,7 @@ public:
 
     uint32_t getBuckets() const;
     uint32_t getTuplesInBucket(uint32_t bucket) const;
-    const Tuple * const * const getBucket(uint32_t bucket) const;
+    const Tuple * const getBucket(uint32_t bucket) const;
     /** Get the (index) element of the (bucket) bucket **/
     const Tuple& getTuple(uint32_t bucket, uint32_t index) const;
     friend std::ostream& operator<<(std::ostream& os, const HashTable& toPrint);

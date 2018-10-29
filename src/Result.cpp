@@ -116,14 +116,28 @@ Result* Result::getLastSegment() {
     return retVal;
 }
 
-void Result::addTuple(Tuple& toAdd) {
-    Result* lastSegment = getLastSegment();
+Result* Result::getFirstNonFullSegment() {
+    Result* retVal = this;
+    while (retVal->numTuples == RESULT_H_BLOCK_SIZE && retVal->next != nullptr) {
+        retVal = retVal->next;
+    }
+    return retVal;
+}
+
+Result* Result::addTuple(Tuple& toAdd) {
+    Result* retVal = nullptr;
+    Result* lastSegment = this;
     if (lastSegment->numTuples == RESULT_H_BLOCK_SIZE) {
-        lastSegment->next = new Result();
-        lastSegment = lastSegment->next;
+        lastSegment = getFirstNonFullSegment();
+        if (lastSegment->numTuples == RESULT_H_BLOCK_SIZE) {
+            lastSegment->next = new Result();
+            lastSegment = lastSegment->next;
+        }
+        retVal = lastSegment;
     }
     lastSegment->tuples[lastSegment->numTuples] = toAdd;
     lastSegment->numTuples++;
+    return retVal;
 }
 
 std::ostream& operator<<(std::ostream& os, const Result& toPrint) {

@@ -12,11 +12,11 @@
 #include <string>
 
 #include "HashTable.h"
-#include "Result.h"
+#include "ResultContainer.h"
 
 class BucketAndChain {
 protected:
-    const Tuple * const * const referenceTable;
+    const Tuple * const referenceTable;
     /** tuplesInBucket's value is used to show the end of a chain or a bucket with no values. **/
     const uint32_t tuplesInBucket;
     const uint32_t subBuckets;
@@ -42,7 +42,7 @@ public:
 
     void join(HashTable& hashToJoin,
               uint32_t bucketToJoin,
-              Result& resultAggregator);
+              ResultContainer& resultAggregator);
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const BucketAndChain& toPrint);

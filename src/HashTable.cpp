@@ -22,7 +22,7 @@ HashTable::HashTable(const Relation& relation,
         hashFunction(hashFunction),
         histogram(new uint32_t[buckets] { }),
         pSum(new uint32_t[buckets] { }),
-        orderedTuples(new const Tuple*[relation.getNumTuples()] { }) {
+        orderedTuples(new Tuple[relation.getNumTuples()] { }) {
     ConsoleOutput consoleOutput("HashTable");
     if (this->buckets == 0) {
         throw runtime_error("buckets must be positive [buckets="
@@ -86,7 +86,7 @@ HashTable::HashTable(const Relation& relation,
         uint32_t currHash = this->hashFunction(buckets, toCheck.getPayload());
         CO_IFDEBUG(consoleOutput,
                    "Copying to bucket " << currHash << " position " << histogram[currHash]);
-        orderedTuples[pSum[currHash] + histogram[currHash]] = new Tuple(toCheck);
+        orderedTuples[pSum[currHash] + histogram[currHash]] = toCheck;
         histogram[currHash]++;
     }
     CO_IFDEBUG(consoleOutput, "Tuples copied");
@@ -96,25 +96,17 @@ HashTable::HashTable(const HashTable & toCopy) :
         buckets(toCopy.buckets),
         numTuples(toCopy.numTuples),
         hashFunction(toCopy.hashFunction),
-        histogram(new uint32_t[buckets] { }),
-        pSum(new uint32_t[buckets] { }),
-        orderedTuples(new const Tuple*[toCopy.numTuples] { }) {
+        histogram(new uint32_t[buckets]),
+        pSum(new uint32_t[buckets]),
+        orderedTuples(new Tuple[toCopy.numTuples]) {
     memcpy(histogram, toCopy.histogram, buckets * sizeof(uint32_t));
     memcpy(pSum, toCopy.pSum, buckets * sizeof(uint32_t));
-    for (uint32_t i = 0; i < numTuples; ++i) {
-        orderedTuples[i] = new Tuple(*(toCopy.orderedTuples[i]));
-    }
+    memcpy(orderedTuples, toCopy.orderedTuples, numTuples * sizeof(Tuple));
 }
 
 HashTable::~HashTable() {
     delete[] histogram;
     delete[] pSum;
-    for (uint32_t i = 0; i < numTuples; ++i) {
-        const Tuple* currTuple = orderedTuples[i];
-        if (currTuple != nullptr) {
-            delete currTuple;
-        }
-    }
     delete[] orderedTuples;
 }
 
@@ -134,7 +126,7 @@ uint32_t HashTable::getTuplesInBucket(uint32_t bucket) const {
     return histogram[bucket];
 }
 
-const Tuple * const * const HashTable::getBucket(uint32_t bucket) const {
+const Tuple * const HashTable::getBucket(uint32_t bucket) const {
     if (bucket >= buckets) {
         throw runtime_error("bucket out of bounds [bucket="
                             + to_string(bucket)
@@ -164,7 +156,7 @@ const Tuple& HashTable::getTuple(uint32_t bucket, uint32_t index) const {
                             + "]");
     }
 
-    return *(orderedTuples[pSum[bucket] + index]);
+    return orderedTuples[pSum[bucket] + index];
 }
 
 std::ostream& operator<<(std::ostream& os, const HashTable& toPrint) {
@@ -200,7 +192,7 @@ std::ostream& operator<<(std::ostream& os, const HashTable& toPrint) {
                << ","
                << j
                << ">: "
-               << (*(toPrint.orderedTuples[pos]));
+               << toPrint.orderedTuples[pos];
         }
     }
     os << "]]";
