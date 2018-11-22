@@ -42,48 +42,59 @@ int main(int argc, char* argv[]) {
     ConsoleOutput::debugEnabledDefault = true;
     ConsoleOutput consoleOutput("Main");
 
-    consoleOutput.errorOutput() << "Hash bits are: " << HASH_BITS << endl;
-    consoleOutput.errorOutput() << "Hash mask is: " << hashMask << endl;
-    consoleOutput.errorOutput() << "buckets are: " << buckets << endl;
-    consoleOutput.errorOutput() << "subBuckets are: " << SUB_BUCKETS << endl;
-    consoleOutput.errorOutput() << "RELR are: " << RELR << endl;
-    consoleOutput.errorOutput() << "RELS are: " << RELS << endl;
-    consoleOutput.errorOutput() << "DIFF is: " << DIFF << endl;
-    consoleOutput.errorOutput() << "Result block size tuples are: "
-                                << RESULT_H_BLOCK_SIZE
-                                << endl;
-    consoleOutput.errorOutput() << "Result block size bytes are: "
-                                << (RESULT_H_BLOCK_SIZE * sizeof(Tuple))
-                                << endl;
+    try {
+        consoleOutput.errorOutput() << "Hash bits are: " << HASH_BITS << endl;
+        consoleOutput.errorOutput() << "Hash mask is: " << hashMask << endl;
+        consoleOutput.errorOutput() << "buckets are: " << buckets << endl;
+        consoleOutput.errorOutput() << "subBuckets are: "
+                                    << SUB_BUCKETS
+                                    << endl;
+        consoleOutput.errorOutput() << "RELR are: " << RELR << endl;
+        consoleOutput.errorOutput() << "RELS are: " << RELS << endl;
+        consoleOutput.errorOutput() << "DIFF is: " << DIFF << endl;
+        consoleOutput.errorOutput() << "Result block size tuples are: "
+                                    << RESULT_H_BLOCK_SIZE
+                                    << endl;
+        consoleOutput.errorOutput() << "Result block size bytes are: "
+                                    << (RESULT_H_BLOCK_SIZE * sizeof(Tuple))
+                                    << endl;
 
-    consoleOutput.errorOutput() << "PART_1 EXECUTION STARTED" << endl;
-    clock_t start = clock();
+        consoleOutput.errorOutput() << "PART_1 EXECUTION STARTED" << endl;
+        clock_t start = clock();
 
-    clock_t joinStart = clock();
+        clock_t joinStart = clock();
 
-    for (int i = 1; i < argc; ++i) {
-        string inFile(argv[i]);
+        for (int i = 1; i < argc; ++i) {
+            string inFile(argv[i]);
 
-        cout << loadTable(inFile) << endl;
+            cout << loadTable(inFile) << endl;
+        }
+
+        clock_t end = clock();
+
+        consoleOutput.errorOutput() << "PART_1 EXECUTION ENDED" << endl;
+        consoleOutput.errorOutput() << "Load Time: "
+                                    << ((joinStart - start)
+                                        / (double) CLOCKS_PER_SEC)
+                                    << endl;
+        consoleOutput.errorOutput() << "Join Time: "
+                                    << ((end - joinStart)
+                                        / (double) CLOCKS_PER_SEC)
+                                    << endl;
+        consoleOutput.errorOutput() << "Total Time: "
+                                    << ((end - start) / (double) CLOCKS_PER_SEC)
+                                    << endl;
+
+        //cout << result << endl;
+
+        return 0;
     }
-
-    clock_t end = clock();
-
-    consoleOutput.errorOutput() << "PART_1 EXECUTION ENDED" << endl;
-    consoleOutput.errorOutput() << "Load Time: "
-                                << ((joinStart - start)
-                                    / (double) CLOCKS_PER_SEC)
-                                << endl;
-    consoleOutput.errorOutput() << "Join Time: "
-                                << ((end - joinStart) / (double) CLOCKS_PER_SEC)
-                                << endl;
-    consoleOutput.errorOutput() << "Total Time: "
-                                << ((end - start) / (double) CLOCKS_PER_SEC)
-                                << endl;
-
-    //cout << result << endl;
-
-    return 0;
+    catch (const exception& ex) {
+        cerr << "Error occurred: " << ex.what() << endl;
+    }
+    catch (...) {
+        cerr << "Unknown failure occurred" << endl;
+    }
 }
 
 ResultContainer radixHashJoin(Relation& relR, Relation& relS) {
