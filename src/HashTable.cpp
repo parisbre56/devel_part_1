@@ -49,18 +49,16 @@ HashTable::HashTable(const Relation& relation,
         histogram[currHash]++;
     }
     if (consoleOutput.getDebugEnabled()) {
-        consoleOutput.debugOutput() << "Created histogram with "
+    CO_IFDEBUG(consoleOutput, "Created histogram with "
                                     << buckets
-                                    << " buckets"
-                                    << endl;
+                                    << " buckets");
 
         for (uint32_t i = 0; i < buckets; ++i) {
-            consoleOutput.debugOutput() << "\t[bucket="
+                CO_IFDEBUG(consoleOutput, "\t[bucket="
                                         << i
                                         << ", size="
                                         << histogram[i]
-                                        << "]"
-                                        << endl;
+                                        << "]");
         }
     }
 

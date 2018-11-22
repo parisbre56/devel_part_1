@@ -8,14 +8,15 @@
 #ifndef CONSOLEOUTPUT_H_
 #define CONSOLEOUTPUT_H_
 
+#include <string>
+#include <ostream>
+
 //Only executes debug code if debug is enabled
 #ifdef NDEBUG
 #define CO_IFDEBUG(consoleOutput, toPrint) ((void)0); //NOOP
 #else
-#define CO_IFDEBUG(consoleOutput, toPrint) if(consoleOutput.getDebugEnabled()) {consoleOutput.debugOutput() << toPrint << endl;}
+#define CO_IFDEBUG(consoleOutput, toPrint) if(consoleOutput.getDebugEnabled()) {consoleOutput.debugOutput() << toPrint << std::endl;}
 #endif //NDEBUG
-
-#include <string>
 
 class ConsoleOutput {
 protected:

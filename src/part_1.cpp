@@ -18,6 +18,7 @@
 #include "HashTable.h"
 #include "Relation.h"
 #include "ResultContainer.h"
+#include "Table.h"
 
 using namespace std;
 
@@ -25,17 +26,20 @@ ResultContainer radixHashJoin(Relation& relR, Relation& relS);
 uint32_t hashFunc(uint32_t buckets, int32_t toHash);
 uint32_t hashFuncChain(uint32_t buckets, int32_t toHash);
 
-#define HASH_BITS 24
-#define SUB_BUCKETS 2048
+#define HASH_BITS 3
+#define SUB_BUCKETS 3
 #define DIFF 10
-#define RELR 40000000
-#define RELS 40000
+#define RELR 3
+#define RELS 1
 
 const uint32_t buckets = 1 << HASH_BITS; //2^n
 const uint32_t hashMask = (1 << HASH_BITS) - 1;
 
+//TODO result size is related to input size
+//TODO catch and log exceptions
+
 int main(int argc, char* argv[]) {
-    ConsoleOutput::debugEnabledDefault = false;
+    ConsoleOutput::debugEnabledDefault = true;
     ConsoleOutput consoleOutput("Main");
 
     consoleOutput.errorOutput() << "Hash bits are: " << HASH_BITS << endl;
@@ -55,35 +59,15 @@ int main(int argc, char* argv[]) {
     consoleOutput.errorOutput() << "PART_1 EXECUTION STARTED" << endl;
     clock_t start = clock();
 
-    CO_IFDEBUG(consoleOutput, "Generating test data");
-
-    //Generate R
-    CO_IFDEBUG(consoleOutput, "Generating table R");
-    Relation relR(RELR);
-    for (uint32_t i = 1; i <= RELR; ++i) {
-        Tuple temp(i, i % RELS);
-        relR.addTuple(temp);
-    }
-    CO_IFDEBUG(consoleOutput, "Table R generated");
-    CO_IFDEBUG(consoleOutput, relR);
-
-    //Generate S
-    CO_IFDEBUG(consoleOutput, "Generating table S");
-    Relation relS(RELS);
-    for (uint32_t i = 1; i <= RELS; ++i) {
-        Tuple temp(i, i);
-        relS.addTuple(temp);
-    }
-    CO_IFDEBUG(consoleOutput, "Table S generated");
-    CO_IFDEBUG(consoleOutput, relS);
-
-    //Perform join
-    CO_IFDEBUG(consoleOutput, "Starting radixHashJoin");
     clock_t joinStart = clock();
-    ResultContainer result(radixHashJoin(relR, relS));
+
+    for (int i = 1; i < argc; ++i) {
+        string inFile(argv[i]);
+
+        cout << loadTable(inFile) << endl;
+    }
+
     clock_t end = clock();
-    CO_IFDEBUG(consoleOutput, "radixHashJoin finished");
-    CO_IFDEBUG(consoleOutput, result);
 
     consoleOutput.errorOutput() << "PART_1 EXECUTION ENDED" << endl;
     consoleOutput.errorOutput() << "Load Time: "
@@ -108,7 +92,7 @@ ResultContainer radixHashJoin(Relation& relR, Relation& relS) {
 
     HashTable rHash(relR, buckets, hashFunc);
     HashTable sHash(relS, buckets, hashFunc);
-
+    CO_IFDEBUG(consoleOutput, "Hashes generated");
     CO_IFDEBUG(consoleOutput, "rHash=" << rHash);
     CO_IFDEBUG(consoleOutput, "sHash=" << sHash);
 

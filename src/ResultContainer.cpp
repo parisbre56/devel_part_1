@@ -9,6 +9,10 @@
 
 #include <sstream>
 
+#include "ConsoleOutput.h"
+
+using namespace std;
+
 ResultContainer::ResultContainer() {
     start = new Result();
     end = start;
@@ -27,12 +31,18 @@ ResultContainer::ResultContainer(ResultContainer&& toMove) {
 }
 
 ResultContainer& ResultContainer::operator=(const ResultContainer& toCopy) {
+    if (start != nullptr) {
+        delete start;
+    }
     start = new Result(*(toCopy.start));
     end = start->getFirstNonFullSegment();
     return *this;
 }
 
 ResultContainer& ResultContainer::operator=(ResultContainer&& toMove) {
+    if (start != nullptr) {
+        delete start;
+    }
     start = toMove.start;
     end = toMove.end;
     toMove.start = nullptr;
