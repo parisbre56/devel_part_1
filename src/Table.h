@@ -40,6 +40,4 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const Table& toPrint);
 };
 
-Table loadTable(std::string filePath);
-
 #endif /* TABLE_H_ */

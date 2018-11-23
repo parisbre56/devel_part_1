@@ -18,13 +18,21 @@
 #include "HashTable.h"
 #include "Relation.h"
 #include "ResultContainer.h"
-#include "Table.h"
+#include "TableLoader.h"
+#include "Metadata.h"
 
 using namespace std;
 
 ResultContainer radixHashJoin(Relation& relR, Relation& relS);
 uint32_t hashFunc(uint32_t buckets, int32_t toHash);
 uint32_t hashFuncChain(uint32_t buckets, int32_t toHash);
+void removeTrailingNewlines(string& toProcess);
+void processInputFile(ConsoleOutput& consoleOutput,
+                      string& input,
+                      TableLoader& tableLoader);
+void processInputJoin(ConsoleOutput& consoleOutput,
+                      string& input,
+                      Metadata& metadata);
 
 #define HASH_BITS 3
 #define SUB_BUCKETS 3
@@ -36,7 +44,6 @@ const uint32_t buckets = 1 << HASH_BITS; //2^n
 const uint32_t hashMask = (1 << HASH_BITS) - 1;
 
 //TODO result size is related to input size
-//TODO catch and log exceptions
 
 int main(int argc, char* argv[]) {
     ConsoleOutput::debugEnabledDefault = true;
@@ -62,12 +69,77 @@ int main(int argc, char* argv[]) {
         consoleOutput.errorOutput() << "PART_1 EXECUTION STARTED" << endl;
         clock_t start = clock();
 
+        TableLoader tableLoader(100);
+
+        //Throw exception on failure
+        cin.exceptions(iostream::failbit | iostream::badbit);
+
+        //For ease of testing, get input from arguments
+        int currArg = 1;
+        if (currArg < argc) {
+            string input;
+            for (; currArg < argc; ++currArg) {
+                input = argv[currArg];
+
+                if (processInputFile(consoleOutput, input, tableLoader))
+                    break;
+            }
+
+            CO_IFDEBUG(consoleOutput,
+                       "Loaded tables from args: " << tableLoader);
+        }
+        else {
+            string input;
+            do {
+                cout << "Give the path to an input file or write 'Done' to stop giving input files: "
+                     << endl;
+                getline(cin, input);
+                if (cin.fail() || cin.eof()) {
+                    consoleOutput.errorOutput() << "cin terminated unexpectedly. Exiting..."
+                                                << endl;
+                }
+
+            } while (!processInputFile(consoleOutput, input, tableLoader));
+
+            CO_IFDEBUG(consoleOutput, "Loaded tables from cin: " << tableLoader);
+        }
+
         clock_t joinStart = clock();
 
-        for (int i = 1; i < argc; ++i) {
-            string inFile(argv[i]);
+        //For ease of testing, get input from arguments
+        Metadata metadata(tableLoader);
+        if (currArg < argc) {
+            string input;
+            for (; currArg < argc; ++currArg) {
+                input = argv[currArg];
 
-            cout << loadTable(inFile) << endl;
+                if (processInputJoin(consoleOutput, input, metadata))
+                    break;
+            }
+            if (currArg == argc) {
+                input = "Done";
+                processInputJoin(consoleOutput, input, metadata);
+            }
+
+            CO_IFDEBUG(consoleOutput, "Finished processing args");
+        }
+        else {
+            string input;
+            do {
+                cout << "Give a join expression, F to end the batch or Done to exit: " <<endl;
+                if (cin.eof()) {
+                    input = "Done";
+                }
+                else {
+                    getline(cin, input);
+                }
+                if (cin.fail()) {
+                    consoleOutput.errorOutput() << "cin terminated unexpectedly. Exiting..."
+                                                << endl;
+                }
+            } while (!processInputJoin(consoleOutput, input, metadata));
+
+            CO_IFDEBUG(consoleOutput, "Finished processing cin");
         }
 
         clock_t end = clock();
@@ -136,4 +208,24 @@ uint32_t hashFunc(uint32_t buckets, int32_t toHash) {
 
 uint32_t hashFuncChain(uint32_t buckets, int32_t toHash) {
     return toHash % buckets;
+}
+
+void removeTrailingNewlines(string& toProcess) {
+    while (toProcess.back() == '\n') {
+        toProcess.pop_back();
+    }
+}
+
+bool processInputFile(ConsoleOutput& consoleOutput,
+                      string& input,
+                      TableLoader& tableLoader) {
+    CO_IFDEBUG(consoleOutput, "Got input: " << input);
+    removeTrailingNewlines(input);
+    if (input == "Done") {
+        CO_IFDEBUG(consoleOutput, "Got Done. Finished loading files.");
+        return true;
+    }
+    CO_IFDEBUG(consoleOutput, "Loading file '" << input << "'");
+    tableLoader.loadTable(input);
+    return false;
 }
