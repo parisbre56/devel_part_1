@@ -35,6 +35,8 @@ public:
           bool ownsMemory);
     virtual ~Table();
 
+    uint64_t getRows() const;
+    size_t getCols() const;
     uint64_t getValue(uint64_t row, size_t col) const;
 
     friend std::ostream& operator<<(std::ostream& os, const Table& toPrint);

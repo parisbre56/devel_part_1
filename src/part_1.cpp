@@ -181,7 +181,7 @@ int main(int argc, char* argv[]) {
         clock_t joinStart = clock();
 
         //For ease of testing, get input from arguments
-        Metadata metadata(tableLoader);
+        Metadata metadata(tableLoader, 100);
         ++currArg;
         if (currArg < argc) {
             string input;

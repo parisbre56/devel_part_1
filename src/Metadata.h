@@ -9,13 +9,21 @@
 #define METADATA_H_
 
 #include "TableLoader.h"
+#include "Join.h"
 
 class Metadata {
 protected:
-    TableLoader& tableLoader;
+    const TableLoader& tableLoader;
+    Join** batch;
+    Join* activeJoin;
+    const uint32_t arraySize;
+    uint32_t joinsInBatch;
+
+    void resetBatch();
+
 public:
     Metadata() = delete;
-    Metadata(TableLoader& tableLoader);
+    Metadata(const TableLoader& tableLoader, uint32_t arraySize);
     Metadata(const Metadata& toCopy) = delete;
     Metadata(Metadata&& toMove) = delete;
     Metadata& operator=(const Metadata& toCopy) = delete;
@@ -36,6 +44,8 @@ public:
     void startJoin();
     void endJoin();
     void endBatch();
+
+    friend std::ostream& operator<<(std::ostream& os, const Metadata& toPrint);
 };
 
 #endif /* METADATA_H_ */

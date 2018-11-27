@@ -38,6 +38,14 @@ Table::~Table() {
     }
 }
 
+uint64_t Table::getRows() const {
+    return rows;
+}
+
+size_t Table::getCols() const {
+    return cols;
+}
+
 uint64_t Table::getValue(uint64_t row, size_t col) const {
     if (row >= rows) {
         throw runtime_error("OutOfBounds [row="
@@ -77,4 +85,3 @@ std::ostream& operator<<(std::ostream& os, const Table& toPrint) {
     os << "]]";
     return os;
 }
-
