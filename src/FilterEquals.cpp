@@ -19,8 +19,7 @@ bool FilterEquals::passesFilter(uint64_t value) const {
 }
 
 void FilterEquals::write(ostream& os) const {
-    os
-    << "[FilterEquals table="
+    os << "[FilterEquals table="
        << table
        << ", col="
        << col

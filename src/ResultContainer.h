@@ -28,7 +28,8 @@ public:
 
     void addTuple(Tuple& toAdd);
 
-    friend std::ostream& operator<<(std::ostream& os, const ResultContainer& toPrint);
+    friend std::ostream& operator<<(std::ostream& os,
+                                    const ResultContainer& toPrint);
 };
 
 #endif /* RESULTCONTAINER_H_ */

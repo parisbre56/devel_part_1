@@ -64,9 +64,9 @@ void Join::addTable(uint32_t table) {
     tables[tableNum++] = table;
 }
 void Join::addTableRelationship(uint32_t tableA,
-                          size_t columnA,
-                          uint32_t tableB,
-                          size_t columnB) {
+                                size_t columnA,
+                                uint32_t tableB,
+                                size_t columnB) {
     if (joinRelations == nullptr) {
         throw runtime_error("Join no longer valid, can't add relationship");
     }
@@ -111,9 +111,9 @@ void Join::addTableRelationship(uint32_t tableA,
                                                         columnB);
 }
 void Join::addTableFilter(uint32_t table,
-                    size_t column,
-                    uint64_t filterNumber,
-                    char type) {
+                          size_t column,
+                          uint64_t filterNumber,
+                          char type) {
     if (filters == nullptr) {
         throw runtime_error("Join no longer valid, can't add filter");
     }

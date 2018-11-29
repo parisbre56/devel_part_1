@@ -50,8 +50,7 @@ public:
     void addSumColumn(uint32_t table, size_t column);
     JoinSumResult performJoin();
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const Join& toPrint);
+    friend std::ostream& operator<<(std::ostream& os, const Join& toPrint);
 };
 
 #endif /* JOIN_H_ */

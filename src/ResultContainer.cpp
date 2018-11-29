@@ -62,8 +62,7 @@ void ResultContainer::addTuple(Tuple& toAdd) {
     }
 }
 
-std::ostream& operator<<(std::ostream& os,
-                                const ResultContainer& toPrint) {
+std::ostream& operator<<(std::ostream& os, const ResultContainer& toPrint) {
     os << "[ResultContainer start=";
     if (toPrint.start == nullptr) {
         os << "null";

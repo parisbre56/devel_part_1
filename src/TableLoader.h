@@ -27,12 +27,11 @@ public:
 
     virtual ~TableLoader();
 
-
     const Table& loadTable(std::string filePath);
     const Table& addTable(uint64_t rows,
-                    size_t cols,
-                    const uint64_t * col_row_table,
-                    bool ownsMemory);
+                          size_t cols,
+                          const uint64_t * col_row_table,
+                          bool ownsMemory);
     const Table& getTable(uint32_t index) const;
     uint32_t getTables() const;
     uint32_t getArraySize() const;

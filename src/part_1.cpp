@@ -158,8 +158,7 @@ int main(int argc, char* argv[]) {
                     break;
             }
 
-            CO_IFDEBUG(consoleOutput,
-                       "Loaded tables from args");
+            CO_IFDEBUG(consoleOutput, "Loaded tables from args");
         }
         else {
             string input;
