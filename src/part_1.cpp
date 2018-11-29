@@ -35,8 +35,8 @@ enum ParseState {
 };
 
 ResultContainer radixHashJoin(Relation& relR, Relation& relS);
-uint32_t hashFunc(uint32_t buckets, int32_t toHash);
-uint32_t hashFuncChain(uint32_t buckets, int32_t toHash);
+uint32_t hashFunc(uint32_t buckets, uint64_t toHash);
+uint32_t hashFuncChain(uint32_t buckets, uint64_t toHash);
 void removeTrailingNewlines(string& toProcess);
 bool processInputFile(string& input, TableLoader& tableLoader);
 bool processInputJoin(string& input, Metadata& metadata);
@@ -274,12 +274,12 @@ ResultContainer radixHashJoin(Relation& relR, Relation& relS) {
     return retResult;
 }
 
-uint32_t hashFunc(uint32_t buckets, int32_t toHash) {
+uint32_t hashFunc(uint32_t buckets, uint64_t toHash) {
     //We ignore buckets, we don't really need it
     return hashMask & toHash;
 }
 
-uint32_t hashFuncChain(uint32_t buckets, int32_t toHash) {
+uint32_t hashFuncChain(uint32_t buckets, uint64_t toHash) {
     return toHash % buckets;
 }
 

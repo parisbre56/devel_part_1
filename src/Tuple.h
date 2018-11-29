@@ -14,24 +14,24 @@
 
 class Tuple {
 protected:
-    int32_t key;
-    int32_t payload;
+    uint64_t key;
+    uint64_t payload;
 
 public:
     /** Create a Tuple with all values initialized to 0 **/
     Tuple();
     /** Create a Tuple with values initialized to the given values **/
-    Tuple(int32_t key, int32_t payload);
+    Tuple(uint64_t key, uint64_t payload);
     /** Create a Tuple with the values of the given Tuple **/
     Tuple(const Tuple& toCopy);
     /** Set the values of this Tuple to the values of the assigned Tuple **/
     Tuple& operator=(const Tuple& toCopy);
     virtual ~Tuple();
 
-    int32_t getKey() const;
-    void setKey(int32_t key);
-    int32_t getPayload() const;
-    void setPayload(int32_t payload);
+    uint64_t getKey() const;
+    void setKey(uint64_t key);
+    uint64_t getPayload() const;
+    void setPayload(uint64_t payload);
 
     friend std::ostream& operator<<(std::ostream& os, const Tuple& toPrint);
 };

@@ -16,7 +16,7 @@ Tuple::Tuple() {
     payload = 0;
 }
 
-Tuple::Tuple(int32_t key, int32_t payload) {
+Tuple::Tuple(uint64_t key, uint64_t payload) {
     this->key = key;
     this->payload = payload;
 }
@@ -35,19 +35,19 @@ Tuple::~Tuple() {
     //Do nothing
 }
 
-int32_t Tuple::getKey() const {
+uint64_t Tuple::getKey() const {
     return key;
 }
 
-void Tuple::setKey(int32_t key) {
+void Tuple::setKey(uint64_t key) {
     this->key = key;
 }
 
-int32_t Tuple::getPayload() const {
+uint64_t Tuple::getPayload() const {
     return payload;
 }
 
-void Tuple::setPayload(int32_t payload) {
+void Tuple::setPayload(uint64_t payload) {
     this->payload = payload;
 }
 

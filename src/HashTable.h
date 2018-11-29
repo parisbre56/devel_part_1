@@ -18,10 +18,10 @@
 class HashTable {
 protected:
     const uint32_t buckets;
-    const uint32_t numTuples;
-    uint32_t (* const hashFunction)(uint32_t, int32_t);
-    uint32_t * const histogram;
-    uint32_t * const pSum;
+    const uint64_t numTuples;
+    uint32_t (* const hashFunction)(uint32_t, uint64_t);
+    uint64_t * const histogram;
+    uint64_t * const pSum;
     Tuple * const orderedTuples;
 public:
     HashTable() = delete;
@@ -36,17 +36,17 @@ public:
      * and error info. **/
     HashTable(const Relation& relation,
               uint32_t buckets,
-              uint32_t (* const hashFunction)(uint32_t, int32_t));
+              uint32_t (* const hashFunction)(uint32_t, uint64_t));
 
     HashTable(const HashTable& toCopy);
     HashTable& operator=(const HashTable& toCopy) = delete;
     virtual ~HashTable();
 
     uint32_t getBuckets() const;
-    uint32_t getTuplesInBucket(uint32_t bucket) const;
+    uint64_t getTuplesInBucket(uint32_t bucket) const;
     const Tuple * const getBucket(uint32_t bucket) const;
     /** Get the (index) element of the (bucket) bucket **/
-    const Tuple& getTuple(uint32_t bucket, uint32_t index) const;
+    const Tuple& getTuple(uint32_t bucket, uint64_t index) const;
     friend std::ostream& operator<<(std::ostream& os, const HashTable& toPrint);
 };
 

@@ -12,20 +12,20 @@
 
 using namespace std;
 
-Relation::Relation(uint32_t arraySize, uint32_t arrayIncrementSize) {
+Relation::Relation(uint64_t arraySize, uint64_t arrayIncrementSize) {
     numTuples = 0;
     this->arraySize = arraySize;
     tuples = new const Tuple*[this->arraySize];
     this->arrayIncrementSize = arrayIncrementSize;
 }
 
-Relation::Relation(uint32_t numOfTuplesToCopy,
+Relation::Relation(uint64_t numOfTuplesToCopy,
                    const Tuple* const * const tuplesToCopy,
-                   uint32_t arrayIncrementSizeToCopy) {
+                   uint64_t arrayIncrementSizeToCopy) {
     numTuples = numOfTuplesToCopy;
     arraySize = numOfTuplesToCopy;
     tuples = new const Tuple*[numOfTuplesToCopy];
-    for (uint32_t i = 0; i < numOfTuplesToCopy; ++i) {
+    for (uint64_t i = 0; i < numOfTuplesToCopy; ++i) {
         tuples[i] = new const Tuple(*(tuplesToCopy[i]));
     }
     arrayIncrementSize = arrayIncrementSizeToCopy;
@@ -46,14 +46,14 @@ Relation::Relation(Relation&& toMove) {
 Relation::~Relation() {
     //Delete all copies if this hasn't been moved
     if (tuples != nullptr) {
-        for (uint32_t i = 0; i < numTuples; ++i) {
+        for (uint64_t i = 0; i < numTuples; ++i) {
             delete tuples[i];
         }
         delete[] tuples;
     }
 }
 
-uint32_t Relation::getNumTuples() const {
+uint64_t Relation::getNumTuples() const {
     return numTuples;
 }
 
@@ -69,7 +69,7 @@ void Relation::addTuple(Tuple& tuple) {
     //If we reached the array limit
     if (numTuples == arraySize) {
         //Create copy with new size
-        uint32_t new_array_size = arraySize + arrayIncrementSize;
+        uint64_t new_array_size = arraySize + arrayIncrementSize;
         const Tuple** new_tuples = new const Tuple*[new_array_size];
 
         //Copy old to new
@@ -88,7 +88,7 @@ void Relation::addTuple(Tuple& tuple) {
     ++numTuples;
 }
 
-const Tuple& Relation::getTuple(uint32_t index) const {
+const Tuple& Relation::getTuple(uint64_t index) const {
     if (index >= numTuples) {
         throw runtime_error("index out of bounds [index="
                             + to_string(index)
@@ -111,7 +111,7 @@ std::ostream& operator<<(std::ostream& os, const Relation& toPrint) {
     }
     else {
         os << "[";
-        for (uint32_t i = 0; i < toPrint.numTuples; ++i) {
+        for (uint64_t i = 0; i < toPrint.numTuples; ++i) {
             os << "\n\t" << i << ": " << (*(toPrint.tuples[i]));
         }
         os << "]";

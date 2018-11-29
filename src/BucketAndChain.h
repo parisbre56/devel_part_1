@@ -18,11 +18,11 @@ class BucketAndChain {
 protected:
     const Tuple * const referenceTable;
     /** tuplesInBucket's value is used to show the end of a chain or a bucket with no values. **/
-    const uint32_t tuplesInBucket;
+    const uint64_t tuplesInBucket;
     const uint32_t subBuckets;
-    uint32_t (* const hashFunction)(uint32_t, int32_t);
-    uint32_t * const bucket;
-    uint32_t * const chain;
+    uint32_t (* const hashFunction)(uint32_t, uint64_t);
+    uint64_t * const bucket;
+    uint64_t * const chain;
 public:
     BucketAndChain() = delete;
     BucketAndChain(const BucketAndChain& toCopy) = delete;
@@ -37,7 +37,7 @@ public:
     BucketAndChain(const HashTable& hashTable,
                    uint32_t bucket,
                    uint32_t subBuckets,
-                   uint32_t (* const hashFunction)(uint32_t, int32_t));
+                   uint32_t (* const hashFunction)(uint32_t, uint64_t));
     virtual ~BucketAndChain();
 
     void join(HashTable& hashToJoin,

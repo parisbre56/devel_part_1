@@ -15,13 +15,13 @@ BucketAndChain::BucketAndChain(const HashTable& hashTable,
                                uint32_t hashBucket,
                                uint32_t subBuckets,
                                uint32_t (* const hashFunction)(uint32_t,
-                                                               int32_t)) :
+                                                               uint64_t)) :
         referenceTable(hashTable.getBucket(hashBucket)),
         tuplesInBucket(hashTable.getTuplesInBucket(hashBucket)),
         subBuckets(subBuckets),
         hashFunction(hashFunction),
-        bucket(new uint32_t[subBuckets]),
-        chain(new uint32_t[hashTable.getTuplesInBucket(hashBucket)] { }) {
+        bucket(new uint64_t[subBuckets]),
+        chain(new uint64_t[hashTable.getTuplesInBucket(hashBucket)] { }) {
     ConsoleOutput consoleOutput("BucketAndChain");
     CO_IFDEBUG(consoleOutput,
                "Splitting " << tuplesInBucket << " tuples to " << this->subBuckets << " subBuckets");
@@ -62,11 +62,11 @@ void BucketAndChain::join(HashTable& hashToJoin,
     CO_IFDEBUG(consoleOutput,
                "Joining with bucket " << bucketToJoin << " of given hashTable");
     const Tuple * const tuplesToJoin = hashToJoin.getBucket(bucketToJoin);
-    uint32_t numTuplesToJoin = hashToJoin.getTuplesInBucket(bucketToJoin);
+    uint64_t numTuplesToJoin = hashToJoin.getTuplesInBucket(bucketToJoin);
 
     CO_IFDEBUG(consoleOutput,
                "Examining " << numTuplesToJoin << " tuples in given hashTable");
-    for (uint32_t i = 0; i < numTuplesToJoin; ++i) {
+    for (uint64_t i = 0; i < numTuplesToJoin; ++i) {
         CO_IFDEBUG(consoleOutput, "Examining tuple " << i);
         const Tuple& currTuple = tuplesToJoin[i];
         CO_IFDEBUG(consoleOutput, "o" << i << ":" << currTuple);
@@ -75,7 +75,7 @@ void BucketAndChain::join(HashTable& hashToJoin,
                                                currTuple.getPayload());
         CO_IFDEBUG(consoleOutput, "Searching subBucket " << currHash);
 
-        uint32_t searchPoint = bucket[currHash];
+        uint64_t searchPoint = bucket[currHash];
         CO_IFDEBUG(consoleOutput,
                    "Searching chain with start point " << searchPoint);
         while (searchPoint != tuplesInBucket) {
@@ -113,7 +113,7 @@ std::ostream& operator<<(std::ostream& os, const BucketAndChain& toPrint) {
         os << toPrint.bucket[i];
     }
     os << "], i:chain[i]:referenceTable[i]=[";
-    for (uint32_t i = 0; i < toPrint.tuplesInBucket; ++i) {
+    for (uint64_t i = 0; i < toPrint.tuplesInBucket; ++i) {
         os << "\n\t"
            << i
            << ":\t"

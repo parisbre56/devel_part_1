@@ -20,21 +20,21 @@
 class Relation {
 protected:
     const Tuple** tuples;
-    uint32_t numTuples;
+    uint64_t numTuples;
 
-    uint32_t arraySize;
-    uint32_t arrayIncrementSize;
+    uint64_t arraySize;
+    uint64_t arrayIncrementSize;
 public:
     /** Creates a new Relation with no tuples stored
      * and a predefined number of empty spaces in the
      * table. **/
-    Relation(uint32_t arraySize = RELATION_H_DEFAULT_TUPLE_LENGTH,
-             uint32_t arrayIncrementSize = RELATION_H_DEFAULT_INCREASE);
+    Relation(uint64_t arraySize = RELATION_H_DEFAULT_TUPLE_LENGTH,
+             uint64_t arrayIncrementSize = RELATION_H_DEFAULT_INCREASE);
     /** Creates a new Relation by copying the given number
      * of tuples from the given table. **/
-    Relation(uint32_t numOfTuplesToCopy,
+    Relation(uint64_t numOfTuplesToCopy,
              const Tuple * const * const tuplesToCopy,
-             uint32_t arrayIncrementSizeToCopy = RELATION_H_DEFAULT_INCREASE);
+             uint64_t arrayIncrementSizeToCopy = RELATION_H_DEFAULT_INCREASE);
     /** Copy constructor, copies the filled part of the
      * underlying array from another Relation. **/
     Relation(const Relation& toCopy);
@@ -46,7 +46,7 @@ public:
     Relation& operator=(const Relation& toCopy) = delete;
     virtual ~Relation();
 
-    uint32_t getNumTuples() const;
+    uint64_t getNumTuples() const;
 
     /** Add a copy of the Tuple to the array of tuples,
      * incrementing the size of the underlying array
@@ -56,7 +56,7 @@ public:
      * is deleted. **/
     void addTuple(Tuple& tuple);
     /** Get the tuple at the given index. **/
-    const Tuple& getTuple(uint32_t index) const;
+    const Tuple& getTuple(uint64_t index) const;
 
     friend std::ostream& operator<<(std::ostream& os, const Relation& toPrint);
 };
