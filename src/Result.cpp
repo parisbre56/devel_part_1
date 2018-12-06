@@ -108,6 +108,10 @@ uint32_t Result::getNumTuples() const {
     return numTuples;
 }
 
+const Tuple * Result::getTuples() const {
+    return tuples;
+}
+
 Result* Result::getLastSegment() {
     Result* retVal = this;
     while (retVal->next != nullptr) {
@@ -135,9 +139,16 @@ Result* Result::addTuple(Tuple& toAdd) {
         }
         retVal = lastSegment;
     }
-    lastSegment->tuples[lastSegment->numTuples] = toAdd;
-    lastSegment->numTuples++;
+    lastSegment->tuples[lastSegment->numTuples++] = toAdd;
     return retVal;
+}
+
+void Result::reset() {
+    Result* currResult = this;
+    do {
+        currResult->numTuples = 0;
+        currResult = currResult->next;
+    } while (currResult != nullptr);
 }
 
 std::ostream& operator<<(std::ostream& os, const Result& toPrint) {

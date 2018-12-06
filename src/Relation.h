@@ -9,6 +9,7 @@
 #define RELATION_H_
 
 #include <string>
+#include <vector>
 
 #include <cstdint>
 
@@ -19,22 +20,20 @@
 
 class Relation {
 protected:
-    const Tuple** tuples;
     uint64_t numTuples;
-
     uint64_t arraySize;
-    uint64_t arrayIncrementSize;
+    Tuple** tuples;
+
+
 public:
     /** Creates a new Relation with no tuples stored
      * and a predefined number of empty spaces in the
      * table. **/
-    Relation(uint64_t arraySize = RELATION_H_DEFAULT_TUPLE_LENGTH,
-             uint64_t arrayIncrementSize = RELATION_H_DEFAULT_INCREASE);
+    Relation(uint64_t arraySize);
     /** Creates a new Relation by copying the given number
      * of tuples from the given table. **/
     Relation(uint64_t numOfTuplesToCopy,
-             const Tuple * const * const tuplesToCopy,
-             uint64_t arrayIncrementSizeToCopy = RELATION_H_DEFAULT_INCREASE);
+             Tuple * const tuplesToCopy);
     /** Copy constructor, copies the filled part of the
      * underlying array from another Relation. **/
     Relation(const Relation& toCopy);
@@ -55,6 +54,7 @@ public:
      * The Relation will delete the created Tuple when it
      * is deleted. **/
     void addTuple(Tuple& tuple);
+    void addTuple(uint64_t key, uint64_t payload);
     /** Get the tuple at the given index. **/
     const Tuple& getTuple(uint64_t index) const;
 

@@ -106,14 +106,6 @@ void parseSums(string::iterator& strIter,
                Metadata& metadata,
                string& input);
 
-#define HASH_BITS 3
-#define SUB_BUCKETS 3
-#define DIFF 10
-#define RELR 3
-#define RELS 1
-
-const uint32_t buckets = 1 << HASH_BITS; //2^n
-const uint32_t hashMask = (1 << HASH_BITS) - 1;
 
 //TODO result size is related to input size
 
@@ -122,15 +114,6 @@ int main(int argc, char* argv[]) {
     ConsoleOutput consoleOutput("Main");
 
     try {
-        consoleOutput.errorOutput() << "Hash bits are: " << HASH_BITS << endl;
-        consoleOutput.errorOutput() << "Hash mask is: " << hashMask << endl;
-        consoleOutput.errorOutput() << "buckets are: " << buckets << endl;
-        consoleOutput.errorOutput() << "subBuckets are: "
-                                    << SUB_BUCKETS
-                                    << endl;
-        consoleOutput.errorOutput() << "RELR are: " << RELR << endl;
-        consoleOutput.errorOutput() << "RELS are: " << RELS << endl;
-        consoleOutput.errorOutput() << "DIFF is: " << DIFF << endl;
         consoleOutput.errorOutput() << "Result block size tuples are: "
                                     << RESULT_H_BLOCK_SIZE
                                     << endl;
@@ -240,47 +223,6 @@ int main(int argc, char* argv[]) {
     catch (...) {
         cerr << "Unknown failure occurred" << endl;
     }
-}
-
-ResultContainer radixHashJoin(Relation& relR, Relation& relS) {
-    ConsoleOutput consoleOutput("RadixHashJoin");
-    consoleOutput.errorOutput() << "JOIN EXECUTION STARTED" << endl;
-
-    HashTable rHash(relR, buckets, hashFunc);
-    HashTable sHash(relS, buckets, hashFunc);
-    CO_IFDEBUG(consoleOutput, "Hashes generated");
-    CO_IFDEBUG(consoleOutput, "rHash=" << rHash);
-    CO_IFDEBUG(consoleOutput, "sHash=" << sHash);
-
-    ResultContainer retResult;
-    for (uint32_t i = 0; i < buckets; ++i) {
-        CO_IFDEBUG(consoleOutput, "Processing bucket " << i);
-
-        if (rHash.getTuplesInBucket(i) == 0
-            || sHash.getTuplesInBucket(i) == 0) {
-            CO_IFDEBUG(consoleOutput,
-                       "Skipping bucket " << i << ": 0 rows [R=" << rHash.getTuplesInBucket(i) << ", S=" << sHash.getTuplesInBucket(i) << "]");
-            continue;
-        }
-
-        BucketAndChain rChain(rHash, i,
-        SUB_BUCKETS,
-                              hashFuncChain);
-        CO_IFDEBUG(consoleOutput, "Created subHashTable " << rChain);
-        rChain.join(sHash, i, retResult);
-    }
-
-    consoleOutput.errorOutput() << "JOIN EXECUTION ENDED" << endl;
-    return retResult;
-}
-
-uint32_t hashFunc(uint32_t buckets, uint64_t toHash) {
-    //We ignore buckets, we don't really need it
-    return hashMask & toHash;
-}
-
-uint32_t hashFuncChain(uint32_t buckets, uint64_t toHash) {
-    return toHash % buckets;
 }
 
 void removeTrailingNewlines(string& toProcess) {

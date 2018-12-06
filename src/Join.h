@@ -16,6 +16,8 @@
 #include "JoinRelation.h"
 #include "TableColumn.h"
 #include "JoinSumResult.h"
+#include "Relation.h"
+#include "ResultContainer.h"
 
 class Join {
 protected:
@@ -29,6 +31,18 @@ protected:
     JoinRelation** joinRelations;
     uint32_t sumColumnNum;
     TableColumn** sumColumns;
+
+    JoinRelation* findSmallestRelation(const bool* const isRelationProcessed,
+                                       const ResultContainer* const * const resultLocation,
+                                       uint32_t& smallestRelationIndex) const;
+    Relation loadRelation(const uint32_t tableReference,
+                          const size_t tableCol,
+                          const ResultContainer* const * const resultLocation,
+                          const bool* const resultKey) const;
+    uint32_t hashFunc(uint32_t buckets, uint64_t toHash) const;
+    uint32_t hashFuncChain(uint32_t buckets, uint64_t toHash) const;
+    ResultContainer radixHashJoin(Relation& relR, Relation& relS) const;
+
 public:
     Join() = delete;
     Join(const TableLoader& tableLoader, uint32_t arraySize);

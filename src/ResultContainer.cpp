@@ -8,6 +8,7 @@
 #include "ResultContainer.h"
 
 #include <sstream>
+#include <limits>
 
 #include "ConsoleOutput.h"
 
@@ -16,16 +17,19 @@ using namespace std;
 ResultContainer::ResultContainer() {
     start = new Result();
     end = start;
+    resultCount = 0;
 }
 
 ResultContainer::ResultContainer(const ResultContainer& toCopy) {
     start = new Result(*(toCopy.start));
     end = start->getFirstNonFullSegment();
+    resultCount = toCopy.resultCount;
 }
 
 ResultContainer::ResultContainer(ResultContainer&& toMove) {
     start = toMove.start;
     end = toMove.end;
+    resultCount = toMove.resultCount;
     toMove.start = nullptr;
     toMove.end = nullptr;
 }
@@ -36,6 +40,7 @@ ResultContainer& ResultContainer::operator=(const ResultContainer& toCopy) {
     }
     start = new Result(*(toCopy.start));
     end = start->getFirstNonFullSegment();
+    resultCount = toCopy.resultCount;
     return *this;
 }
 
@@ -45,6 +50,7 @@ ResultContainer& ResultContainer::operator=(ResultContainer&& toMove) {
     }
     start = toMove.start;
     end = toMove.end;
+    resultCount = toMove.resultCount;
     toMove.start = nullptr;
     toMove.end = nullptr;
     return *this;
@@ -56,9 +62,40 @@ ResultContainer::~ResultContainer() {
 }
 
 void ResultContainer::addTuple(Tuple& toAdd) {
+    if (resultCount != numeric_limits<uint64_t>::max()) {
+        ++resultCount;
+    }
     Result* nextEnd = end->addTuple(toAdd);
     if (nextEnd != nullptr) {
         end = nextEnd;
+    }
+}
+
+void ResultContainer::reset() {
+    resultCount = 0;
+    start->reset();
+    end = start;
+}
+
+uint64_t ResultContainer::getResultCount() const {
+    return resultCount;
+}
+
+void ResultContainer::loadToRelation(Relation& rel,
+                                     const uint64_t * const currCol,
+                                     const bool useKey) const {
+    const Result* currResult = start;
+    uint64_t rowKey = 0;
+    while (currResult != nullptr) {
+        const uint32_t numTuples = currResult->getNumTuples();
+        const Tuple * currTuple = currResult->getTuples();
+        for (uint32_t i = 0; i < numTuples; ++i, ++currTuple) {
+            const uint64_t rowNum =
+                    (useKey) ? (currTuple->getKey()) :
+                               (currTuple->getPayload());
+            rel.addTuple(rowNum, currCol[rowNum]);
+        }
+        currResult = start->next;
     }
 }
 

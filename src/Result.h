@@ -13,6 +13,7 @@
 
 #include "Tuple.h"
 
+//TODO dynamically compute?
 //1MB divided by size of Tuple gives us the number of Tuple we can store
 #define RESULT_H_BLOCK_SIZE (1024*1024)/sizeof(Tuple)
 
@@ -47,6 +48,8 @@ public:
     /** The number of tuples in this segment **/
     uint32_t getNumTuples() const;
 
+    const Tuple * getTuples() const;
+
     /** Returns the last segment for this chain of results. **/
     Result* getLastSegment();
     /** Return the first non-full segment. Or the last segment if none exist. **/
@@ -58,6 +61,8 @@ public:
      * if it was inserted into a segment other than this
      * or null if it was inserted to this segment. **/
     Result* addTuple(Tuple& toAdd);
+
+    void reset();
 
     friend std::ostream& operator<<(std::ostream& os, const Result& toPrint);
 };

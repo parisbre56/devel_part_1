@@ -46,6 +46,18 @@ size_t Table::getCols() const {
     return cols;
 }
 
+const uint64_t* Table::getCol(size_t col) const {
+
+    if (col >= cols) {
+        throw runtime_error("OutOfBounds [col="
+                            + to_string(col)
+                            + ", cols="
+                            + to_string(cols)
+                            + "]");
+    }
+    return col_row_table + (col * rows);
+}
+
 uint64_t Table::getValue(uint64_t row, size_t col) const {
     if (row >= rows) {
         throw runtime_error("OutOfBounds [row="
@@ -72,13 +84,14 @@ std::ostream& operator<<(std::ostream& os, const Table& toPrint) {
        << ", ownsMemory="
        << toPrint.ownsMemory
        << ", col_row_table=[";
+    const uint64_t * currVal = toPrint.col_row_table;
     for (uint64_t row = 0; row < toPrint.rows; ++row) {
         os << "\n\t[";
         for (size_t col = 0; col < toPrint.cols; ++col) {
             if (col != 0) {
                 os << ", ";
             }
-            os << toPrint.getValue(row, col);
+            os << (*(currVal++));
         }
         os << "]";
     }

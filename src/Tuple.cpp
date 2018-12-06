@@ -8,54 +8,125 @@
 #include "Tuple.h"
 
 #include <sstream>
+#include <cstring>
 
 using namespace std;
 
-Tuple::Tuple() {
-    key = 0;
-    payload = 0;
-}
-
-Tuple::Tuple(uint64_t key, uint64_t payload) {
-    this->key = key;
-    this->payload = payload;
+Tuple::Tuple(uint32_t sizeTableRows, size_t sizePayloads) :
+        sizeTableRows(sizeTableRows),
+        sizePayloads(sizePayloads),
+        tableRows(new uint64_t[sizeTableRows] { }),
+        payloads(new uint64_t[sizePayloads] { }) {
 }
 
 Tuple::Tuple(const Tuple& toCopy) :
-        Tuple(toCopy.key, toCopy.payload) {
+        sizeTableRows(toCopy.sizeTableRows),
+        sizePayloads(toCopy.sizePayloads),
+        tableRows(new uint64_t[toCopy.sizeTableRows]),
+        payloads(new uint64_t[toCopy.sizePayloads]) {
+    memcpy(tableRows, toCopy.tableRows, toCopy.sizeTableRows);
+    memcpy(payloads, toCopy.payloads, toCopy.sizePayloads);
+}
+Tuple::Tuple(Tuple&& toMove) :
+        sizeTableRows(toMove.sizeTableRows),
+        sizePayloads(toMove.sizePayloads),
+        tableRows(toMove.tableRows),
+        payloads(toMove.payloads) {
+    toMove.tableRows = nullptr;
+    toMove.payloads = nullptr;
 }
 
 Tuple& Tuple::operator=(const Tuple& toCopy) {
-    this->key = toCopy.key;
-    this->payload = toCopy.payload;
-    return *this;
+    if (sizeTableRows < toCopy.sizeTableRows) {
+        delete[] tableRows;
+        tableRows = new uint64_t[toCopy.sizeTableRows];
+    }
+    if (sizePayloads < toCopy.sizePayloads) {
+        delete[] payloads;
+        payloads = new uint64_t[toCopy.sizePayloads];
+    }
+    sizeTableRows = toCopy.sizeTableRows;
+    sizePayloads = toCopy.sizePayloads;
+    memcpy(tableRows, toCopy.tableRows, toCopy.sizeTableRows);
+    memcpy(payloads, toCopy.payloads, toCopy.sizePayloads);
+}
+
+Tuple& Tuple::operator=(Tuple&& toMove) {
+    delete[] tableRows;
+    delete[] payloads;
+    tableRows = toMove.tableRows;
+    payloads = toMove.payloads;
+    toMove.tableRows = nullptr;
+    toMove.payloads = nullptr;
+    sizeTableRows = toMove.sizeTableRows;
+    sizePayloads = toMove.sizePayloads;
 }
 
 Tuple::~Tuple() {
-    //Do nothing
+    if (tableRows != nullptr) {
+        delete[] tableRows
+    }
+    if (payloads != nullptr) {
+        delete[] payloads;
+    }
 }
 
-uint64_t Tuple::getKey() const {
-    return key;
+uint32_t Tuple::getSizeTableRows() const {
+    return sizeTableRows;
 }
 
-void Tuple::setKey(uint64_t key) {
-    this->key = key;
+uint64_t Tuple::getTableRow(uint32_t col) const {
+    return tableRows[col];
+}
+void Tuple::setTableRow(uint32_t col, uint64_t rowNum) {
+    tableRows[col] = rowNum;
 }
 
-uint64_t Tuple::getPayload() const {
-    return payload;
+size_t Tuple::getSizePayloads() const {
+    return sizePayloads;
 }
 
-void Tuple::setPayload(uint64_t payload) {
-    this->payload = payload;
+uint64_t Tuple::getPayload(size_t col) const {
+    return payloads[col];
+}
+
+void Tuple::setPayload(size_t col, uint64_t value) {
+    payloads[col] = value;
 }
 
 std::ostream& operator<<(std::ostream& os, const Tuple& toPrint) {
-    os << "[Tuple key="
-       << toPrint.key
-       << ", payload="
-       << toPrint.payload
-       << "]";
+    os << "[Tuple sizeTableRows="
+       << toPrint.sizeTableRows
+       << ", sizePayloads="
+       << toPrint.sizePayloads
+       << ", payloads=";
+    if (toPrint.payloads == nullptr) {
+        os << "null";
+    }
+    else {
+        os << "[";
+        for (uint32_t i = 0; i < toPrint.sizePayloads; ++i) {
+            if (i != 0) {
+                os << ", ";
+            }
+            os << toPrint.payloads[i];
+        }
+        os << "]";
+    }
+    os << ", tableRows=";
+    if (toPrint.tableRows == nullptr) {
+        os << "null";
+    }
+    else {
+        os << "[";
+        for (uint32_t i = 0; i < toPrint.sizeTableRows; ++i) {
+            if (i != 0) {
+                os << ", ";
+            }
+            os << toPrint.tableRows[i];
+        }
+        os << "]";
+    }
+    os << "]";
     return os;
 }

@@ -13,12 +13,14 @@ using namespace std;
 
 JoinSumResult::JoinSumResult(uint32_t numOfSums) :
         numOfSums(numOfSums),
-        sums(new uint64_t[numOfSums] { /*initialize to 0*/}) {
+        sums(new uint64_t[numOfSums] { /*initialize to 0*/}),
+        hasResults(false) {
 
 }
 JoinSumResult::JoinSumResult(JoinSumResult&& toMove) {
     numOfSums = toMove.numOfSums;
     sums = toMove.sums;
+    hasResults = toMove.hasResults;
     toMove.sums = nullptr;
 }
 JoinSumResult& JoinSumResult::operator=(JoinSumResult&& toMove) {
@@ -28,6 +30,7 @@ JoinSumResult& JoinSumResult::operator=(JoinSumResult&& toMove) {
 
     numOfSums = toMove.numOfSums;
     sums = toMove.sums;
+    hasResults = toMove.hasResults;
     toMove.sums = nullptr;
 
     return *this;
@@ -38,10 +41,10 @@ JoinSumResult::~JoinSumResult() {
     }
 }
 
-uint32_t JoinSumResult::getNumOfSums() {
+uint32_t JoinSumResult::getNumOfSums() const {
     return numOfSums;
 }
-uint64_t JoinSumResult::getSum(uint32_t sumNum) {
+uint64_t JoinSumResult::getSum(uint32_t sumNum) const {
     if (sumNum >= numOfSums) {
         throw runtime_error("getSum: out of bounds [sumNum="
                             + to_string(sumNum)
@@ -62,6 +65,14 @@ uint64_t JoinSumResult::addSum(uint32_t sumNum, uint64_t toAdd) {
     return sums[sumNum] += toAdd;
 }
 
+bool JoinSumResult::getHasResults() const {
+    return hasResults;
+}
+
+void JoinSumResult::setHasResults() {
+    hasResults = true;
+}
+
 ostream& operator<<(ostream& os, const JoinSumResult& toPrint) {
     os << "[JoinSumResult numOfSums=" << toPrint.numOfSums << ", sums=";
     if (toPrint.sums == nullptr) {
@@ -77,7 +88,7 @@ ostream& operator<<(ostream& os, const JoinSumResult& toPrint) {
         }
         os << "]";
     }
-    os << "]";
+    os << ", hasResults=" << toPrint.hasResults << "]";
     return os;
 }
 

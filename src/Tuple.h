@@ -14,24 +14,29 @@
 
 class Tuple {
 protected:
-    uint64_t key;
-    uint64_t payload;
-
+    uint32_t sizeTableRows;
+    size_t sizePayloads;
+    uint64_t * tableRows;
+    uint64_t * payloads;
 public:
-    /** Create a Tuple with all values initialized to 0 **/
-    Tuple();
-    /** Create a Tuple with values initialized to the given values **/
-    Tuple(uint64_t key, uint64_t payload);
+    Tuple() = delete;
+    /** Create a Tuple with the values initialized to 0 **/
+    Tuple(uint32_t sizeTableRows, size_t sizePayloads);
     /** Create a Tuple with the values of the given Tuple **/
     Tuple(const Tuple& toCopy);
+    Tuple(Tuple&& toMove);
     /** Set the values of this Tuple to the values of the assigned Tuple **/
     Tuple& operator=(const Tuple& toCopy);
+    Tuple& operator=(Tuple&& toMove);
     virtual ~Tuple();
 
-    uint64_t getKey() const;
-    void setKey(uint64_t key);
-    uint64_t getPayload() const;
-    void setPayload(uint64_t payload);
+    uint32_t Tuple::getSizeTableRows() const;
+    uint64_t Tuple::getTableRow(uint32_t col) const;
+    void Tuple::setTableRow(uint32_t col, uint64_t rowNum);
+
+    size_t Tuple::getSizePayloads() const;
+    uint64_t Tuple::getPayload(size_t col) const;
+    void Tuple::setPayload(size_t col, uint64_t value);
 
     friend std::ostream& operator<<(std::ostream& os, const Tuple& toPrint);
 };

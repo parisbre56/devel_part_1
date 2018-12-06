@@ -14,6 +14,7 @@ class JoinSumResult {
 protected:
     uint32_t numOfSums;
     uint64_t* sums;
+    bool hasResults;
 public:
     JoinSumResult() = delete;
     JoinSumResult(uint32_t numOfSums);
@@ -23,9 +24,11 @@ public:
     JoinSumResult& operator=(JoinSumResult&& toMove);
     virtual ~JoinSumResult();
 
-    uint32_t getNumOfSums();
-    uint64_t getSum(uint32_t sumNum);
+    uint32_t getNumOfSums() const;
+    uint64_t getSum(uint32_t sumNum) const;
     uint64_t addSum(uint32_t sumNum, uint64_t toAdd);
+    bool getHasResults() const;
+    void setHasResults();
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const JoinSumResult& toPrint);
