@@ -21,8 +21,18 @@ protected:
     Result* end;
 
     uint64_t resultCount;
+
+    bool* usedRows;
+    bool manageUsedRows;
+
+    uint32_t sizeTableRows;
+    size_t sizePayloads;
 public:
-    ResultContainer();
+    ResultContainer() = delete;
+    ResultContainer(uint64_t blockSize,
+                    uint32_t sizeTableRows,
+                    size_t sizePayloads,
+                    bool* usedRows = nullptr);
     ResultContainer(const ResultContainer& toCopy);
     ResultContainer(ResultContainer&& toMove);
     ResultContainer& operator=(const ResultContainer& toCopy);
@@ -30,15 +40,19 @@ public:
     virtual ~ResultContainer();
 
     void addTuple(Tuple& toAdd);
+    void addTuple(Tuple&& toAdd);
     /** Reset the container without releasing storage **/
     void reset();
     uint64_t getResultCount() const;
-    /** Load to given relation the results contained within.
-     * currCol is a pointer to the column to use.
-     * useKey is set to true if the table was stored on the key part of the result or false if it was stored on the payload part. **/
+    /** Load to the given relation the results contained within.
+     * {payloadTables} is an array of size {sizePayloads} that
+     * contains numbers < {sizeTableRows} that tells from which
+     * table the values will be loaded.
+     * {payloadCols} is the columns of the table from which the values will be loaded. **/
     void loadToRelation(Relation& rel,
-                        const uint64_t * const currCol,
-                        const bool useKey) const;
+                        const size_t sizePayloads,
+                        const uint32_t * const payloadTables,
+                        const uint64_t * const * const payloadCols) const;
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const ResultContainer& toPrint);

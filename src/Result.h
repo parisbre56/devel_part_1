@@ -15,20 +15,24 @@
 
 //TODO dynamically compute?
 //1MB divided by size of Tuple gives us the number of Tuple we can store
-#define RESULT_H_BLOCK_SIZE (1024*1024)/sizeof(Tuple)
+//#define RESULT_H_BLOCK_SIZE (1024*1024)/sizeof(Tuple) //TODO this is wrong
 
 class Result {
 protected:
-    Tuple* tuples;
-    uint32_t numTuples;
+    Relation* relation;
     Result* next;
 
-    void copyValuesInternal(const Result& toCopy);
-    void moveValuesInternal(Result& toMove);
+    bool* usedRows;
 
+    uint32_t sizeTableRows;
+    size_t sizePayloads;
 public:
+    Result() = delete;
     /** Creates a new empty Result **/
-    Result();
+    Result(uint64_t blockSize,
+           int32_t sizeTableRows,
+           size_t sizePayloads,
+           bool* usedRows);
     /** Copy constructor, copies the contents of the given Result
      * to the new Result. **/
     Result(const Result& toCopy);
@@ -46,9 +50,7 @@ public:
     virtual ~Result();
 
     /** The number of tuples in this segment **/
-    uint32_t getNumTuples() const;
-
-    const Tuple * getTuples() const;
+    const Relation& getRelation() const;
 
     /** Returns the last segment for this chain of results. **/
     Result* getLastSegment();
@@ -61,6 +63,7 @@ public:
      * if it was inserted into a segment other than this
      * or null if it was inserted to this segment. **/
     Result* addTuple(Tuple& toAdd);
+    Result* addTuple(Tuple&& toAdd);
 
     void reset();
 

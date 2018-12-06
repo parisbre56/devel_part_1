@@ -16,16 +16,20 @@ Tuple::Tuple(uint32_t sizeTableRows, size_t sizePayloads) :
         sizeTableRows(sizeTableRows),
         sizePayloads(sizePayloads),
         tableRows(new uint64_t[sizeTableRows] { }),
-        payloads(new uint64_t[sizePayloads] { }) {
+        payloads(sizePayloads == 0 ? nullptr : new uint64_t[sizePayloads] { }) {
 }
 
 Tuple::Tuple(const Tuple& toCopy) :
         sizeTableRows(toCopy.sizeTableRows),
         sizePayloads(toCopy.sizePayloads),
         tableRows(new uint64_t[toCopy.sizeTableRows]),
-        payloads(new uint64_t[toCopy.sizePayloads]) {
+        payloads(
+                toCopy.sizePayloads == 0 ? nullptr :
+                                           new uint64_t[toCopy.sizePayloads]) {
     memcpy(tableRows, toCopy.tableRows, toCopy.sizeTableRows);
-    memcpy(payloads, toCopy.payloads, toCopy.sizePayloads);
+    if (toCopy.sizePayloads != 0) {
+        memcpy(payloads, toCopy.payloads, toCopy.sizePayloads);
+    }
 }
 Tuple::Tuple(Tuple&& toMove) :
         sizeTableRows(toMove.sizeTableRows),
@@ -42,18 +46,24 @@ Tuple& Tuple::operator=(const Tuple& toCopy) {
         tableRows = new uint64_t[toCopy.sizeTableRows];
     }
     if (sizePayloads < toCopy.sizePayloads) {
-        delete[] payloads;
+        if (payloads != nullptr) {
+            delete[] payloads;
+        }
         payloads = new uint64_t[toCopy.sizePayloads];
     }
     sizeTableRows = toCopy.sizeTableRows;
     sizePayloads = toCopy.sizePayloads;
     memcpy(tableRows, toCopy.tableRows, toCopy.sizeTableRows);
-    memcpy(payloads, toCopy.payloads, toCopy.sizePayloads);
+    if (toCopy.sizePayloads != 0) {
+        memcpy(payloads, toCopy.payloads, toCopy.sizePayloads);
+    }
 }
 
 Tuple& Tuple::operator=(Tuple&& toMove) {
     delete[] tableRows;
-    delete[] payloads;
+    if (payloads != nullptr) {
+        delete[] payloads;
+    }
     tableRows = toMove.tableRows;
     payloads = toMove.payloads;
     toMove.tableRows = nullptr;
@@ -64,7 +74,7 @@ Tuple& Tuple::operator=(Tuple&& toMove) {
 
 Tuple::~Tuple() {
     if (tableRows != nullptr) {
-        delete[] tableRows
+        delete[] tableRows;
     }
     if (payloads != nullptr) {
         delete[] payloads;
