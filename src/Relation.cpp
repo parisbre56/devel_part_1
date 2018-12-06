@@ -7,102 +7,176 @@
 
 #include "Relation.h"
 
+#include <cstring>
+
 #include <sstream>
 #include <stdexcept>
 
 using namespace std;
 
-Relation::Relation(uint64_t arraySize, uint64_t arrayIncrementSize) {
-    numTuples = 0;
-    this->arraySize = arraySize;
-    tuples = new Tuple[this->arraySize];
-}
-
-Relation::Relation(uint64_t numOfTuplesToCopy,
-                   Tuple * const tuplesToCopy) {
-    numTuples = numOfTuplesToCopy;
-    arraySize = numOfTuplesToCopy;
-    tuples = new const Tuple*[numOfTuplesToCopy];
-    for (uint64_t i = 0; i < numOfTuplesToCopy; ++i) {
-        tuples[i] = tuplesToCopy[i];
-    }
+Relation::Relation(uint64_t arraySize,
+                   uint32_t sizeTableRows,
+                   size_t sizePayloads,
+                   bool* usedRows = nullptr) :
+        numTuples(0),
+        arraySize(arraySize),
+        tuples(new Tuple*[arraySize]),
+        usedRows(
+                usedRows == nullptr ? new bool[sizeTableRows] { /*init to false*/} :
+                                      usedRows),
+        manageUsedRows(usedRows == nullptr),
+        sizeTableRows(sizeTableRows),
+        sizePayloads(sizePayloads) {
 }
 
 Relation::Relation(const Relation& toCopy) :
-        Relation(toCopy.numTuples, toCopy.tuples) {
+        numTuples(toCopy.numTuples),
+        arraySize(toCopy.arraySize),
+        tuples(new Tuple*[toCopy.arraySize]),
+        usedRows(new bool[toCopy.sizeTableRows]),
+        manageUsedRows(true),
+        sizeTableRows(toCopy.sizeTableRows),
+        sizePayloads(toCopy.sizePayloads) {
+    memcpy(usedRows, toCopy.usedRows, toCopy.sizeTableRows);
+    for (uint64_t i = 0; i < toCopy.arraySize; ++i) {
+        tuples[i] = new Tuple(toCopy.tuples[i]);
+    }
 }
 
-Relation::Relation(Relation&& toMove) {
-    numTuples = toMove.numTuples;
-    arraySize = toMove.arraySize;
-    tuples = toMove.tuples;
+Relation::Relation(Relation&& toMove) :
+        numTuples(toMove.numTuples),
+        arraySize(toMove.arraySize),
+        tuples(toMove.tuples),
+        usedRows(toMove.usedRows),
+        manageUsedRows(toMove.manageUsedRows),
+        sizeTableRows(toMove.sizeTableRows),
+        sizePayloads(toMove.sizePayloads) {
     toMove.tuples = nullptr;
+    toMove.usedRows = nullptr;
 }
 
 Relation::~Relation() {
     //Delete all copies if this hasn't been moved
     if (tuples != nullptr) {
+        for (uint64_t i = 0; i < numTuples; ++i) {
+            delete tuples[i];
+        }
         delete[] tuples;
+    }
+    if (manageUsedRows && usedRows != nullptr) {
+        delete[] usedRows;
     }
 }
 
 uint64_t Relation::getNumTuples() const {
     return numTuples;
 }
+uint64_t Relation::getArraySize() const {
+    return arraySize;
+}
+const bool* Relation::getUsedRows() const {
+    return usedRows;
+}
+bool Relation::getUsedRow(uint32_t row) const {
+    if (row >= sizeTableRows) {
+        throw runtime_error("Relation::getUsedRow: index out of bounds [row="
+                            + to_string(row)
+                            + ", sizeTableRows="
+                            + to_string(sizeTableRows)
+                            + "]");
+    }
+    return usedRows[row];
+}
+void Relation::setUsedRow(uint32_t row) {
+    if (row >= sizeTableRows) {
+        throw runtime_error("Relation::setUsedRow: index out of bounds [row="
+                            + to_string(row)
+                            + ", sizeTableRows="
+                            + to_string(sizeTableRows)
+                            + "]");
+    }
+    if (!manageUsedRows) {
+        throw runtime_error("Relation::setUsedRow: manageUsedRows is false");
+    }
+    usedRows[row] = true;
+}
+uint32_t Relation::getSizeTableRows() const {
+    return sizeTableRows;
+}
+size_t Relation::getSizePayloads() const {
+    return sizePayloads;
+}
 
+/** Add a copy of the Tuple to the array of tuples,
+ * incrementing the size of the underlying array
+ * automatically if necessary.
+ *
+ * The Relation will delete the created Tuple when it
+ * is deleted. **/
 void Relation::addTuple(Tuple& tuple) {
     if (numTuples >= arraySize) {
-        throw runtime_error("addTuple: reached limit, can't add more tuples [num_tuples="
+        throw runtime_error("Relation::addTuple: reached limit, can't add more tuples [numTuples="
                             + to_string(numTuples)
-                            + ", array_size="
+                            + ", arraySize="
                             + to_string(arraySize)
                             + "]");
     }
-
-    //Add copy
-    tuples[numTuples++] = tuple;
+    tuples[numTuples++] = new Tuple(tuple);
 }
-
-void Relation::addTuple(uint64_t key, uint64_t payload) {
+void Relation::addTuple(Tuple&& tuple) {
     if (numTuples >= arraySize) {
-        throw runtime_error("addTuple: reached limit, can't add more tuples [num_tuples="
+        throw runtime_error("Relation::addTuple: reached limit, can't add more tuples [numTuples="
                             + to_string(numTuples)
-                            + ", array_size="
+                            + ", arraySize="
                             + to_string(arraySize)
                             + "]");
     }
-
-    //Add copy
-    Tuple& toAdd = tuples[numTuples++];
-    toAdd.setKey(key);
-    toAdd.setPayload(payload);
+    tuples[numTuples++] = new Tuple(tuple);
 }
-
+/** Get the tuple at the given index. **/
+const Tuple* const * const Relation::getTuples() const {
+    return tuples;
+}
 const Tuple& Relation::getTuple(uint64_t index) const {
-    if (index >= numTuples) {
-        throw runtime_error("index out of bounds [index="
-                            + to_string(index)
-                            + ", num_tuples="
-                            + to_string(numTuples)
-                            + "]");
-    }
-
-    return tuples[index];
+    return *(tuples[index]);
 }
+
+void Relation::reset() {
+    for (uint64_t i = 0; i < numTuples; ++i) {
+        delete tuples[i];
+    }
+    numTuples = 0;
+}
+
+/*numTuples(toCopy.numTuples),
+ arraySize(toCopy.arraySize),
+ tuples(new Tuple*[toCopy.arraySize]),
+ usedRows(new bool[toCopy.sizeTableRows]),
+ manageUsedRows(true),
+ sizeTableRows(toCopy.sizeTableRows),
+ sizePayloads(toCopy.sizePayloads)*/
 
 std::ostream& operator<<(std::ostream& os, const Relation& toPrint) {
     os << "[Relation array_size="
        << toPrint.arraySize
        << ", num_tuples="
        << toPrint.numTuples
-       << ", tuples=";
+       << ", sizeTableRows="
+       << toPrint.sizeTableRows
+       << ", sizePayloads="
+       << toPrint.sizePayloads
+       << ", manageUsedRows="
+       << toPrint.manageUsedRows
+       << ", usedRows=";
+    if (toPrint) //TODO
+        os << ", tuples=";
     if (toPrint.tuples == nullptr) {
         os << "null";
     }
     else {
         os << "[";
         for (uint64_t i = 0; i < toPrint.numTuples; ++i) {
-            os << "\n\t" << i << ": " << toPrint.tuples[i];
+            os << "\n\t" << i << ": " << *(toPrint.tuples[i]);
         }
         os << "]";
     }

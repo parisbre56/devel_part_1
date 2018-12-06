@@ -48,7 +48,8 @@ public:
      * {payloadTables} is an array of size {sizePayloads} that
      * contains numbers < {sizeTableRows} that tells from which
      * table the values will be loaded.
-     * {payloadCols} is the columns of the table from which the values will be loaded. **/
+     * {payloadCols} is an array of size {sizePayloads} that has
+     * the columns of the table from which the values will be loaded. **/
     void loadToRelation(Relation& rel,
                         const size_t sizePayloads,
                         const uint32_t * const payloadTables,

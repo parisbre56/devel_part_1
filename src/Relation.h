@@ -64,7 +64,7 @@ public:
     void addTuple(Tuple& tuple);
     void addTuple(Tuple&& tuple);
     /** Get the tuple at the given index. **/
-    const Tuple* getTuples() const;
+    const Tuple* const * const getTuples() const;
     const Tuple& getTuple(uint64_t index) const;
 
     void reset();
