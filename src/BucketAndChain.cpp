@@ -12,8 +12,8 @@
 using namespace std;
 
 BucketAndChain::BucketAndChain(const HashTable& hashTable,
-                               uint32_t hashBucket,
-                               uint32_t subBuckets,
+                               const uint32_t hashBucket,
+                               const uint32_t subBuckets,
                                uint32_t (* const hashFunction)(uint32_t,
                                                                uint64_t)) :
         referenceTable(hashTable.getBucket(hashBucket)),
@@ -21,7 +21,10 @@ BucketAndChain::BucketAndChain(const HashTable& hashTable,
         subBuckets(subBuckets),
         hashFunction(hashFunction),
         bucket(new uint64_t[subBuckets]),
-        chain(new uint64_t[hashTable.getTuplesInBucket(hashBucket)] { }) {
+        chain(new uint64_t[hashTable.getTuplesInBucket(hashBucket)] { }),
+        sizeTableRows(hashTable.getSizeTableRows()),
+        sizePayloads(hashTable.getSizePayloads()),
+        usedRows(hashTable.getUsedRows()) {
     ConsoleOutput consoleOutput("BucketAndChain");
     CO_IFDEBUG(consoleOutput,
                "Splitting " << tuplesInBucket << " tuples to " << this->subBuckets << " subBuckets");
@@ -36,11 +39,11 @@ BucketAndChain::BucketAndChain(const HashTable& hashTable,
     CO_IFDEBUG(consoleOutput, "Starting split");
     for (uint32_t i = 0; i < tuplesInBucket; ++i) {
         CO_IFDEBUG(consoleOutput, "Processing tuple " << i);
-        const Tuple& currTuple = referenceTable[i];
+        const Tuple& currTuple = *(referenceTable[i]);
         CO_IFDEBUG(consoleOutput, i << ":" << currTuple);
 
         uint32_t currHash = this->hashFunction(this->subBuckets,
-                                               currTuple.getPayload());
+                                               currTuple.getPayload(0));
         CO_IFDEBUG(consoleOutput, "Assigned to subBucket " << currHash);
 
         //If this is the first time the bucket is used, then the end of the chain will
@@ -61,18 +64,18 @@ void BucketAndChain::join(HashTable& hashToJoin,
     ConsoleOutput consoleOutput("BucketAndChain::join");
     CO_IFDEBUG(consoleOutput,
                "Joining with bucket " << bucketToJoin << " of given hashTable");
-    const Tuple * const tuplesToJoin = hashToJoin.getBucket(bucketToJoin);
+    const Tuple * const * const tuplesToJoin = hashToJoin.getBucket(bucketToJoin);
     uint64_t numTuplesToJoin = hashToJoin.getTuplesInBucket(bucketToJoin);
 
     CO_IFDEBUG(consoleOutput,
                "Examining " << numTuplesToJoin << " tuples in given hashTable");
     for (uint64_t i = 0; i < numTuplesToJoin; ++i) {
         CO_IFDEBUG(consoleOutput, "Examining tuple " << i);
-        const Tuple& currTuple = tuplesToJoin[i];
+        const Tuple& currTuple = *(tuplesToJoin[i]);
         CO_IFDEBUG(consoleOutput, "o" << i << ":" << currTuple);
 
         uint32_t currHash = this->hashFunction(subBuckets,
-                                               currTuple.getPayload());
+                                               currTuple.getPayload(0));
         CO_IFDEBUG(consoleOutput, "Searching subBucket " << currHash);
 
         uint64_t searchPoint = bucket[currHash];
@@ -80,13 +83,23 @@ void BucketAndChain::join(HashTable& hashToJoin,
                    "Searching chain with start point " << searchPoint);
         while (searchPoint != tuplesInBucket) {
             CO_IFDEBUG(consoleOutput, "Searching chain point " << searchPoint);
-            const Tuple& searchPointTuple = referenceTable[searchPoint];
+            const Tuple& searchPointTuple = *(referenceTable[searchPoint]);
             CO_IFDEBUG(consoleOutput,
                        "c" << searchPoint << ":" << searchPointTuple);
-            if (searchPointTuple.getPayload() == currTuple.getPayload()) {
-                Tuple joinRow(searchPointTuple.getKey(), currTuple.getKey());
+            bool matches = true;
+            for (size_t j = 0; j < sizePayloads; ++j) {
+                if (searchPointTuple.getPayload(j) != currTuple.getPayload(j)) {
+                    matches = false;
+                    break;
+                }
+            }
+            if (matches) {
+                Tuple joinRow(searchPointTuple,
+                              usedRows,
+                              currTuple,
+                              hashToJoin.getUsedRows());
                 CO_IFDEBUG(consoleOutput, "Adding joinRow " << joinRow);
-                resultAggregator.addTuple(joinRow);
+                resultAggregator.addTuple(move(joinRow));
             }
             searchPoint = chain[searchPoint];
         }
@@ -105,7 +118,18 @@ std::ostream& operator<<(std::ostream& os, const BucketAndChain& toPrint) {
        << toPrint.subBuckets
        << ", hashFunction="
        << ((void*) toPrint.hashFunction)
-       << ", bucket=[";
+       << ", sizeTableRows="
+       << toPrint.sizeTableRows
+       << ", sizePayloads="
+       << toPrint.sizePayloads
+       << ", usedRows=[";
+    for (uint32_t i = 0; i < toPrint.sizeTableRows; ++i) {
+        if (i != 0) {
+            os << ", ";
+        }
+        os << toPrint.usedRows[i];
+    }
+    os << "], bucket=[";
     for (uint32_t i = 0; i < toPrint.subBuckets; ++i) {
         if (i != 0) {
             os << ", ";
@@ -119,7 +143,7 @@ std::ostream& operator<<(std::ostream& os, const BucketAndChain& toPrint) {
            << ":\t"
            << toPrint.chain[i]
            << ":\t"
-           << toPrint.referenceTable[i];
+           << *(toPrint.referenceTable[i]);
     }
     os << "]]";
     return os;

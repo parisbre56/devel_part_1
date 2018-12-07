@@ -22,7 +22,10 @@ HashTable::HashTable(const Relation& relation,
         hashFunction(hashFunction),
         histogram(new uint64_t[buckets] { }),
         pSum(new uint64_t[buckets] { }),
-        orderedTuples(new Tuple[relation.getNumTuples()] { }) {
+        sizeTableRows(relation.getSizeTableRows()),
+        sizePayloads(relation.getSizePayloads()),
+        usedRows(relation.getUsedRows()),
+        orderedTuples(new const Tuple*[relation.getNumTuples()] { }) {
     ConsoleOutput consoleOutput("HashTable");
     if (this->buckets == 0) {
         throw runtime_error("buckets must be positive [buckets="
@@ -44,7 +47,7 @@ HashTable::HashTable(const Relation& relation,
         const Tuple& toCheck = relation.getTuple(i);
         CO_IFDEBUG(consoleOutput, i << ":" << toCheck);
 
-        uint32_t currHash = this->hashFunction(buckets, toCheck.getPayload());
+        uint32_t currHash = this->hashFunction(buckets, toCheck.getPayload(0));
         CO_IFDEBUG(consoleOutput, "Assigned to bucket " << currHash);
         histogram[currHash]++;
     }
@@ -77,25 +80,13 @@ HashTable::HashTable(const Relation& relation,
         const Tuple& toCheck = relation.getTuple(i);
         CO_IFDEBUG(consoleOutput, i << ":" << toCheck);
 
-        uint32_t currHash = this->hashFunction(buckets, toCheck.getPayload());
+        uint32_t currHash = this->hashFunction(buckets, toCheck.getPayload(0));
         CO_IFDEBUG(consoleOutput,
                    "Copying to bucket " << currHash << " position " << histogram[currHash]);
-        orderedTuples[pSum[currHash] + histogram[currHash]] = toCheck;
+        orderedTuples[pSum[currHash] + histogram[currHash]] = &toCheck;
         histogram[currHash]++;
     }
     CO_IFDEBUG(consoleOutput, "Tuples copied");
-}
-
-HashTable::HashTable(const HashTable & toCopy) :
-        buckets(toCopy.buckets),
-        numTuples(toCopy.numTuples),
-        hashFunction(toCopy.hashFunction),
-        histogram(new uint64_t[buckets]),
-        pSum(new uint64_t[buckets]),
-        orderedTuples(new Tuple[toCopy.numTuples]) {
-    memcpy(histogram, toCopy.histogram, buckets * sizeof(uint64_t));
-    memcpy(pSum, toCopy.pSum, buckets * sizeof(uint64_t));
-    memcpy(orderedTuples, toCopy.orderedTuples, numTuples * sizeof(Tuple));
 }
 
 HashTable::~HashTable() {
@@ -120,7 +111,7 @@ uint64_t HashTable::getTuplesInBucket(uint32_t bucket) const {
     return histogram[bucket];
 }
 
-const Tuple * const HashTable::getBucket(uint32_t bucket) const {
+const Tuple * const * HashTable::getBucket(uint32_t bucket) const {
     if (bucket >= buckets) {
         throw runtime_error("bucket out of bounds [bucket="
                             + to_string(bucket)
@@ -128,7 +119,6 @@ const Tuple * const HashTable::getBucket(uint32_t bucket) const {
                             + to_string(buckets)
                             + "]");
     }
-
     return orderedTuples + pSum[bucket];
 }
 
@@ -150,7 +140,19 @@ const Tuple& HashTable::getTuple(uint32_t bucket, uint64_t index) const {
                             + "]");
     }
 
-    return orderedTuples[pSum[bucket] + index];
+    return *(orderedTuples[pSum[bucket] + index]);
+}
+
+const bool* HashTable::getUsedRows() const {
+    return usedRows;
+}
+
+size_t HashTable::getSizePayloads() const {
+    return sizePayloads;
+}
+
+uint32_t HashTable::getSizeTableRows() const {
+    return sizeTableRows;
 }
 
 std::ostream& operator<<(std::ostream& os, const HashTable& toPrint) {
@@ -160,7 +162,18 @@ std::ostream& operator<<(std::ostream& os, const HashTable& toPrint) {
        << toPrint.numTuples
        << ", hashFunction="
        << ((void*) toPrint.hashFunction)
-       << ", histogram=[";
+       << ", sizeTableRows="
+       << toPrint.sizeTableRows
+       << ", sizePayloads="
+       << toPrint.sizePayloads
+       << ", usedRows=[";
+    for (uint32_t i = 0; i < toPrint.sizeTableRows; ++i) {
+        if (i != 0) {
+            os << ", ";
+        }
+        os << toPrint.usedRows[i];
+    }
+    os << "], histogram=[";
     for (uint32_t i = 0; i < toPrint.buckets; ++i) {
         if (i != 0) {
             os << ", ";
@@ -186,7 +199,7 @@ std::ostream& operator<<(std::ostream& os, const HashTable& toPrint) {
                << ","
                << j
                << ">: "
-               << toPrint.orderedTuples[pos];
+               << *(toPrint.orderedTuples[pos]);
         }
     }
     os << "]]";

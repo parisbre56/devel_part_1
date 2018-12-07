@@ -26,22 +26,24 @@ protected:
     uint32_t tableNum;
     uint32_t* tables;
     uint32_t filterNum;
-    Filter** filters;
+    const Filter** filters;
     uint32_t joinRelationNum;
-    JoinRelation** joinRelations;
+    const JoinRelation** joinRelations;
     uint32_t sumColumnNum;
-    TableColumn** sumColumns;
+    const TableColumn** sumColumns;
+    //Current results of joining, each relation is stored in its own resultContainer
+    ResultContainer** resultContainers;
 
-    JoinRelation* findSmallestRelation(const bool* const isRelationProcessed,
+    const JoinRelation* findSmallestRelation(const bool* const isRelationProcessed,
                                        const ResultContainer* const * const resultLocation,
-                                       uint32_t& smallestRelationIndex) const;
+                                       uint32_t& smallestRelationIndex,
+                                       uint32_t& sameTableRelations) const;
     Relation loadRelation(const uint32_t tableReference,
-                          const size_t tableCol,
-                          const ResultContainer* const * const resultLocation,
-                          const bool* const resultKey) const;
-    uint32_t hashFunc(uint32_t buckets, uint64_t toHash) const;
-    uint32_t hashFuncChain(uint32_t buckets, uint64_t toHash) const;
-    ResultContainer radixHashJoin(Relation& relR, Relation& relS) const;
+                          const uint32_t colsToProcessNum,
+                          const size_t* const colsToProcess,
+                          const ResultContainer* const * const resultLocation) const;
+    ResultContainer radixHashJoin(const Relation& relR,
+                                  const Relation& relS) const;
 
 public:
     Join() = delete;

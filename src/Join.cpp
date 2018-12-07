@@ -23,17 +23,21 @@ using namespace std;
 const uint32_t buckets = 1 << HASH_BITS; //2^n
 const uint32_t hashMask = (1 << HASH_BITS) - 1;
 
+uint32_t hashFunc(uint32_t buckets, uint64_t toHash);
+uint32_t hashFuncChain(uint32_t buckets, uint64_t toHash);
+
 Join::Join(const TableLoader& tableLoader, uint32_t arraySize) :
         tableLoader(tableLoader),
         arraySize(arraySize),
         tableNum(0),
         tables(new uint32_t[arraySize]),
         filterNum(0),
-        filters(new Filter*[arraySize]),
+        filters(new const Filter*[arraySize]),
         joinRelationNum(0),
-        joinRelations(new JoinRelation*[arraySize]),
+        joinRelations(new const JoinRelation*[arraySize]),
         sumColumnNum(0),
-        sumColumns(new TableColumn*[arraySize]) {
+        sumColumns(new const TableColumn*[arraySize]),
+        resultContainers(nullptr) {
 
 }
 
@@ -58,6 +62,14 @@ Join::~Join() {
             delete sumColumns[i];
         }
         delete[] sumColumns;
+    }
+    if (resultContainers != nullptr) {
+        for (uint32_t i = 0; i < joinRelationNum; ++i) {
+            if (resultContainers[i] != nullptr) {
+                delete resultContainers[i];
+            }
+        }
+        delete[] resultContainers;
     }
 }
 
@@ -199,60 +211,90 @@ JoinSumResult Join::performJoin() {
         return retVal;
     }
     //Determines which result holds the rows for table. Initialized to nullptr when a table has not been joined.
-    const ResultContainer* resultLocation[this->tableNum] {/* init nullptr */};
-    //Determines which side of the result holds this table. True for key, false for value
-    bool resultKey[this->tableNum];
-    //Current results of joining, each relation is stored in its own resultContainer
-    ResultContainer resultContainers[this->joinRelationNum];
+    const ResultContainer* resultLocation[this->tableNum] {/* init to nullptr */};
     bool isRelationProcessed[this->joinRelationNum] { /* init to false */};
+    resultContainers = new ResultContainer*[this->joinRelationNum] {/* init to nullptr */};
     while (true) {
         uint32_t smallestRelationIndex;
+        uint32_t sameTableRelations;
         const JoinRelation * const smallestRelation = findSmallestRelation(isRelationProcessed,
                                                                            resultLocation,
-                                                                           smallestRelationIndex);
+                                                                           smallestRelationIndex,
+                                                                           sameTableRelations);
         if (smallestRelation == nullptr) {
             CO_IFDEBUG(consoleOutput, "No more relations to process");
             break;
         }
-        isRelationProcessed[smallestRelationIndex] = true;
 
-        Relation relL(loadRelation(smallestRelation->leftNum,
-                                   smallestRelation->leftCol,
-                                   resultLocation,
-                                   resultKey));
-        Relation relR(loadRelation(smallestRelation->leftNum,
-                                   smallestRelation->leftCol,
-                                   resultLocation,
-                                   resultKey));
+        size_t colsToProcessLeft[sameTableRelations];
+        size_t colsToProcessRight[sameTableRelations];
+        sameTableRelations = 0;
+        for (uint32_t relationIndex = 0; relationIndex < joinRelationNum;
+                ++relationIndex) {
+            const JoinRelation& currRelation = *(joinRelations[relationIndex]);
+            if (currRelation.sameTableAs(*smallestRelation)) {
+                isRelationProcessed[relationIndex] = true;
+                if (currRelation.getLeftNum()
+                    == smallestRelation->getLeftNum()) {
+                    colsToProcessLeft[sameTableRelations] = currRelation.getLeftCol();
+                    colsToProcessRight[sameTableRelations] = currRelation.getRightCol();
+                }
+                else {
+                    colsToProcessLeft[sameTableRelations] = currRelation.getRightCol();
+                    colsToProcessRight[sameTableRelations] = currRelation.getLeftCol();
+                }
+                sameTableRelations++;
+            }
+        }
+
+        Relation relL(loadRelation(smallestRelation->getLeftNum(),
+                                   sameTableRelations,
+                                   colsToProcessLeft,
+                                   resultLocation));
+        Relation relR(loadRelation(smallestRelation->getLeftNum(),
+                                   sameTableRelations,
+                                   colsToProcessRight,
+                                   resultLocation));
 
         //Empty table means no sum
         if (relL.getNumTuples() == 0 || relR.getNumTuples() == 0) {
             return retVal;
         }
 
-        if (relL.getNumTuples() >= relR.getNumTuples()) {
-            resultContainers[smallestRelationIndex] = radixHashJoin(relR, relL);
-            resultLocation[smallestRelation->leftNum] = resultContainers
-                                                        + smallestRelationIndex;
-            resultLocation[smallestRelation->rightNum] = resultContainers
-                                                         + smallestRelationIndex;
-            resultKey[smallestRelation->leftNum] = false;
-            resultKey[smallestRelation->rightNum] = true;
-        }
-        else {
-            resultContainers[smallestRelationIndex] = radixHashJoin(relL, relR);
-            resultLocation[smallestRelation->leftNum] = resultContainers
-                                                        + smallestRelationIndex;
-            resultLocation[smallestRelation->rightNum] = resultContainers
-                                                         + smallestRelationIndex;
-            resultKey[smallestRelation->leftNum] = true;
-            resultKey[smallestRelation->rightNum] = false;
-        }
+        ResultContainer* newResult = new ResultContainer(
+                (relL.getNumTuples() >= relR.getNumTuples()) ? radixHashJoin(relR,
+                                                                             relL) :
+                                                               radixHashJoin(relL,
+                                                                             relR));
+        resultContainers[smallestRelationIndex] = newResult;
 
         //Empty join means no sum
-        if (resultContainers[smallestRelationIndex].getResultCount() == 0) {
+        if (newResult->getResultCount() == 0) {
             return retVal;
         }
+
+        //Delete old results and store new results
+        const bool* resultUsedRows = newResult->getUsedRows();
+        for (uint32_t i = 0; i < tableNum; ++i) {
+            if (resultUsedRows[i] && resultLocation[i] != newResult) {
+                if (resultLocation[i] != nullptr) {
+                    const ResultContainer* toDelete = resultLocation[i];
+                    for (uint32_t j = i + 1; j < tableNum; ++j) {
+                        if (resultLocation[j] == toDelete) {
+                            resultLocation[j] = newResult;
+                        }
+                    }
+                    for (uint32_t j = 0; j < joinRelationNum; ++j) {
+                        if (resultContainers[j] == toDelete) {
+                            resultContainers[j] = nullptr;
+                        }
+                    }
+                    delete toDelete;
+                }
+                resultLocation[i] = newResult;
+            }
+        }
+
     }
     //TODO checks for corner cases
     //TODO perform join for each relation
@@ -263,21 +305,30 @@ JoinSumResult Join::performJoin() {
     //TODO cartesian product for all tables without resultLocation
     //TODO and cartesian product for all unconnected joins
     //TODO
+    /*TODO finally cartesian product the two greatest results
+     * (if more than one exists in resultLocation) or the null resultLocations */
     return retVal;
 }
 
 /** relR is stored in key, relS is stored in value **/
-ResultContainer Join::radixHashJoin(Relation& relR, Relation& relS) const {
+ResultContainer Join::radixHashJoin(const Relation& relR,
+                                    const Relation& relS) const {
     ConsoleOutput consoleOutput("RadixHashJoin");
     consoleOutput.errorOutput() << "JOIN EXECUTION STARTED" << endl;
 
-    HashTable rHash(relR, buckets, &Join::hashFunc);
-    HashTable sHash(relS, buckets, &Join::hashFunc);
+    HashTable rHash(relR, buckets, hashFunc);
+    HashTable sHash(relS, buckets, hashFunc);
     CO_IFDEBUG(consoleOutput, "Hashes generated");
     CO_IFDEBUG(consoleOutput, "rHash=" << rHash);
     CO_IFDEBUG(consoleOutput, "sHash=" << sHash);
 
-    ResultContainer retResult;
+    ResultContainer retResult(1000 /*TODO*/, relR.getSizeTableRows(), 0);
+    for (uint32_t i = 0; i < tableNum; ++i) {
+        if (relR.getUsedRow(i) || relS.getUsedRow(i)) {
+            retResult.setUsedRow(i);
+        }
+    }
+
     for (uint32_t i = 0; i < buckets; ++i) {
         CO_IFDEBUG(consoleOutput, "Processing bucket " << i);
 
@@ -288,7 +339,7 @@ ResultContainer Join::radixHashJoin(Relation& relR, Relation& relS) const {
             continue;
         }
 
-        BucketAndChain rChain(rHash, i, SUB_BUCKETS, &Join::hashFuncChain);
+        BucketAndChain rChain(rHash, i, SUB_BUCKETS, hashFuncChain);
         CO_IFDEBUG(consoleOutput, "Created subHashTable " << rChain);
         rChain.join(sHash, i, retResult);
     }
@@ -297,21 +348,23 @@ ResultContainer Join::radixHashJoin(Relation& relR, Relation& relS) const {
     return retResult;
 }
 
-uint32_t Join::hashFunc(uint32_t buckets, uint64_t toHash) const {
+uint32_t hashFunc(uint32_t buckets, uint64_t toHash) {
     //We ignore buckets, we don't really need it
     return hashMask & toHash;
 }
 
-uint32_t Join::hashFuncChain(uint32_t buckets, uint64_t toHash) const {
+uint32_t hashFuncChain(uint32_t buckets, uint64_t toHash) {
     return toHash % buckets;
 }
 
-JoinRelation* Join::findSmallestRelation(const bool* const isRelationProcessed,
-                                         const ResultContainer* const * const resultLocation,
-                                         uint32_t& smallestRelationIndex) const {
-    JoinRelation* smallestRelation = nullptr;
+const JoinRelation* Join::findSmallestRelation(const bool* const isRelationProcessed,
+                                               const ResultContainer* const * const resultLocation,
+                                               uint32_t& smallestRelationIndex,
+                                               uint32_t& sameTableRelations) const {
+    const JoinRelation* smallestRelation = nullptr;
     uint64_t smallestRelationValue = numeric_limits<uint64_t>::max();
-    for (uint32_t i = 0; i < this->joinRelationNum; ++i) {
+    sameTableRelations = 0;
+    for (uint32_t i = 0; i < joinRelationNum; ++i) {
         //Skip already processed relations
         if (isRelationProcessed[i]) {
             continue;
@@ -320,66 +373,102 @@ JoinRelation* Join::findSmallestRelation(const bool* const isRelationProcessed,
         const JoinRelation * const currRel = joinRelations[i];
 
         //Check left part of the relation
-        {
-            const uint32_t relLeftJoinTable = currRel->leftNum;
-            const ResultContainer* leftResultContainerLoaded = resultLocation[relLeftJoinTable];
-            const uint64_t relLeftRows;
-            if (leftResultContainerLoaded == nullptr) {
-                relLeftRows = tableLoader.getTable(tables[relLeftJoinTable]).getRows();
-            }
-            else {
-                relLeftRows = leftResultContainerLoaded->getResultCount();
-            }
-            if (relLeftRows < smallestRelationValue) {
-                smallestRelationValue = relLeftRows;
-                smallestRelation = currRel;
-                smallestRelationIndex = i;
-            }
+
+        const uint32_t relLeftJoinTable = currRel->getLeftNum();
+        const ResultContainer* leftResultContainerLoaded = resultLocation[relLeftJoinTable];
+        const uint64_t relLeftRows =
+                (leftResultContainerLoaded == nullptr) ? (tableLoader.getTable(tables[relLeftJoinTable]).getRows()) :
+                                                         (leftResultContainerLoaded->getResultCount());
+        if (relLeftRows < smallestRelationValue) {
+            smallestRelationValue = relLeftRows;
+            smallestRelation = currRel;
+            smallestRelationIndex = i;
+            sameTableRelations = 0;
         }
 
         //Check right part of the relation
-        {
-            const uint32_t relRightJoinTable = currRel->rightNum;
-            const ResultContainer* rightResultContainerLoaded = resultLocation[relRightJoinTable];
-            const uint64_t relRightRows;
-            if (rightResultContainerLoaded == nullptr) {
-                relRightRows = tableLoader.getTable(tables[relRightJoinTable]).getRows();
-            }
-            else {
-                relRightRows = rightResultContainerLoaded->getResultCount();
-            }
-            if (relRightRows < smallestRelationValue) {
-                smallestRelationValue = relRightRows;
-                smallestRelation = currRel;
-                smallestRelationIndex = i;
-            }
+        const uint32_t relRightJoinTable = currRel->getRightNum();
+        const ResultContainer* rightResultContainerLoaded = resultLocation[relRightJoinTable];
+        const uint64_t relRightRows =
+                (rightResultContainerLoaded == nullptr) ? (tableLoader.getTable(tables[relRightJoinTable]).getRows()) :
+                                                          (rightResultContainerLoaded->getResultCount());
+
+        if (relRightRows < smallestRelationValue) {
+            smallestRelationValue = relRightRows;
+            smallestRelation = currRel;
+            smallestRelationIndex = i;
+            sameTableRelations = 0;
+        }
+
+        if (smallestRelation->sameTableAs(*currRel)) {
+            ++sameTableRelations;
         }
     }
     return smallestRelation;
 }
 
 Relation Join::loadRelation(const uint32_t tableReference,
-                            const size_t tableCol,
-                            const ResultContainer* const * const resultLocation,
-                            const bool* const resultKey) const {
+                            const uint32_t colsToProcessNum,
+                            const size_t* const colsToProcess,
+                            const ResultContainer* const * const resultLocation) const {
     const ResultContainer* resultContainerLoaded = resultLocation[tableReference];
     const Table& joinTableLoaded = tableLoader.getTable(tables[tableReference]);
+    const uint64_t* tableCols[colsToProcessNum];
+    for (uint32_t i = 0; i < colsToProcessNum; ++i) {
+        tableCols[i] = joinTableLoaded.getCol(colsToProcess[i]);
+    }
+    //If this table has not been previously processed
     if (resultContainerLoaded == nullptr) {
-        const uint64_t rows = joinTableLoaded.getRows();
-        Relation retVal(rows);
-        const uint64_t * currRow = joinTableLoaded.getCol(tableCol);
-        for (uint64_t i = 0; i < rows; i++, currRow++) {
-            retVal.addTuple(i, *currRow);
+        //Find filters
+        uint32_t filtersToApplyNum = 0;
+        for (uint32_t filterIndex = 0; filterIndex < filterNum; ++filterIndex) {
+            const Filter* currFilter = filters[filterIndex];
+            if (currFilter->getTable() == tableReference) {
+                filtersToApplyNum++;
+            }
         }
-        //TODO handle filters for this table
+        const Filter* filtersToApply[filtersToApplyNum];
+        filtersToApplyNum = 0;
+        for (uint32_t filterIndex = 0; filterIndex < filterNum; ++filterIndex) {
+            const Filter* currFilter = filters[filterIndex];
+            if (currFilter->getTable() == tableReference) {
+                filtersToApply[filtersToApplyNum++] = currFilter;
+            }
+        }
+
+        //Load data
+        const uint64_t rows = joinTableLoaded.getRows();
+        Relation retVal(rows, tableNum, colsToProcessNum);
+        for (uint64_t currRowNum = 0; currRowNum < rows; currRowNum++) {
+            //Apply filters for this table
+            bool failedFilters = false;
+            for (uint32_t filterIndex = 0; filterIndex < filtersToApplyNum;
+                    ++filterIndex) {
+                const Filter& currFilter = *(filtersToApply[filterIndex]);
+                if (!currFilter.passesFilter(joinTableLoaded.getValue(currRowNum,
+                                                                      currFilter.getCol()))) {
+                    failedFilters = true;
+                    break;
+                }
+            }
+            if (failedFilters) {
+                continue;
+            }
+
+            //If row passes filters, load it
+            Tuple toAdd(tableNum, colsToProcessNum);
+            toAdd.setTableRow(tableReference, currRowNum);
+            for (size_t j = 0; j < colsToProcessNum; ++j) {
+                toAdd.setPayload(j, tableCols[j][currRowNum]);
+            }
+            retVal.addTuple(move(toAdd));
+        }
         return retVal;
     }
     //Else, if resultContainerLoaded is not null (i.e. table was part of a previously joined relation)
-    Relation retVal(resultContainerLoaded->getResultCount());
-    resultContainerLoaded->loadToRelation(retVal,
-                                          joinTableLoaded.getCol(tableCol),
-                                          resultKey[tableReference]);
-    return retVal;
+    return resultContainerLoaded->loadToRelation(tableReference,
+                                                 colsToProcessNum,
+                                                 tableCols);
 }
 
 ostream& operator<<(ostream& os, const Join& toPrint) {

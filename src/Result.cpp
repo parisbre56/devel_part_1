@@ -29,13 +29,13 @@ Result::Result(uint64_t blockSize,
 
 }
 
-Result::Result(const Result& toCopy, const bool * const usedRows) :
+Result::Result(const Result& toCopy, bool * usedRows) :
         sizeTableRows(toCopy.sizeTableRows),
         sizePayloads(toCopy.sizePayloads),
         usedRows(usedRows),
-        relation(new Relation(toCopy.relation, usedRows)),
+        relation(new Relation(*(toCopy.relation), usedRows)),
         next(toCopy.next == nullptr ? nullptr :
-                                      new Result(toCopy.next, usedRows)) { //TODO can do better performance by eliminating recursion
+                                      new Result(*(toCopy.next), usedRows)) { //TODO can do better performance by eliminating recursion
 }
 
 Result::Result(Result&& toMove) :

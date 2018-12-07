@@ -27,6 +27,8 @@ public:
     JoinRelation& operator=(const JoinRelation& toCopy) = delete;
     virtual ~JoinRelation();
 
+    bool sameTableAs(const JoinRelation& toCompare) const;
+
     uint32_t getLeftNum() const;
     size_t getLeftCol() const;
     uint32_t getRightNum() const;

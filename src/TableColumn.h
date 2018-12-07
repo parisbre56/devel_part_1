@@ -11,8 +11,8 @@
 #include <iostream>
 
 class TableColumn {
-    const uint32_t tableNum;
-    const size_t tableCol;
+    uint32_t tableNum;
+    size_t tableCol;
 public:
     TableColumn() = delete;
     TableColumn(uint32_t tableNum, size_t tableCol);
@@ -23,7 +23,9 @@ public:
     virtual ~TableColumn();
 
     uint32_t getTableNum() const;
-    uint32_t getTableCol() const;
+    void setTableNum(uint32_t tableNum);
+    size_t getTableCol() const;
+    void setTableCol(size_t tableCol);
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const TableColumn& toPrint);

@@ -44,6 +44,25 @@ Tuple::Tuple(Tuple&& toMove) :
     toMove.payloads = nullptr;
 }
 
+//one optimization could be variable length tuples (is memory tradeoff worth it? probably not)
+Tuple::Tuple(const Tuple& tupleLeft,
+             const bool* usedRowsLeft,
+             const Tuple& tupleRight,
+             const bool* usedRowsRight) :
+        sizeTableRows(tupleLeft.sizeTableRows),
+        sizePayloads(0),
+        tableRows(new uint64_t[tupleLeft.sizeTableRows]),
+        payloads(nullptr) {
+    for (uint32_t i = 0; i < sizeTableRows; ++i) {
+        if (usedRowsLeft[i]) {
+            tableRows[i] = tupleLeft.tableRows[i];
+        }
+        else if (usedRowsRight[i]) {
+            tableRows[i] = tupleRight.tableRows[i];
+        }
+    }
+}
+
 Tuple::Tuple(const Tuple& toCopy, size_t sizePayloads) :
         sizeTableRows(toCopy.sizeTableRows),
         sizePayloads(toCopy.sizePayloads),

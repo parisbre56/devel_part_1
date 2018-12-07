@@ -21,8 +21,15 @@ TableColumn::~TableColumn() {
 uint32_t TableColumn::getTableNum() const {
     return tableNum;
 }
-uint32_t TableColumn::getTableCol() const {
+void TableColumn::setTableNum(uint32_t tableNum) {
+    this->tableNum = tableNum;
+}
+
+size_t TableColumn::getTableCol() const {
     return tableCol;
+}
+void TableColumn::setTableCol(size_t tableCol) {
+    this->tableCol = tableCol;
 }
 
 ostream& operator<<(ostream& os, const TableColumn& toPrint) {

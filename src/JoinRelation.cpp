@@ -30,6 +30,11 @@ JoinRelation::~JoinRelation() {
     //Do nothing
 }
 
+bool JoinRelation::sameTableAs(const JoinRelation& toCompare) const {
+    return (leftNum == toCompare.leftNum && rightNum == toCompare.rightNum)
+           || (leftNum == toCompare.rightNum && rightNum == toCompare.leftNum);
+}
+
 uint32_t JoinRelation::getLeftNum() const {
     return leftNum;
 

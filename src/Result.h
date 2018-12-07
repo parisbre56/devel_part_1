@@ -42,7 +42,7 @@ public:
      * we don't know who is the owner of that memory in relation to this
      * object. **/
     Result(const Result& toCopy) = delete;
-    Result(const Result& toCopy, const bool * const usedRows);
+    Result(const Result& toCopy, bool * usedRows);
     /** Move the data from the given Result to a new one. The old
      * Result is left empty and unusable, it can only be deleted. **/
     Result(Result&& toMove);

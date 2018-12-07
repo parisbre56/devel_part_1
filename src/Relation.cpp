@@ -17,7 +17,7 @@ using namespace std;
 Relation::Relation(uint64_t arraySize,
                    uint32_t sizeTableRows,
                    size_t sizePayloads,
-                   bool* usedRows = nullptr) :
+                   bool* usedRows) :
         numTuples(0),
         arraySize(arraySize),
         tuples(new Tuple*[arraySize]),
@@ -39,11 +39,11 @@ Relation::Relation(const Relation& toCopy) :
         sizePayloads(toCopy.sizePayloads) {
     memcpy(usedRows, toCopy.usedRows, toCopy.sizeTableRows * sizeof(bool));
     for (uint64_t i = 0; i < toCopy.arraySize; ++i) {
-        tuples[i] = new Tuple(toCopy.tuples[i]);
+        tuples[i] = new Tuple(*(toCopy.tuples[i]));
     }
 }
 
-Relation::Relation(const Relation& toCopy, const bool * const usedRows) :
+Relation::Relation(const Relation& toCopy, bool * const usedRows) :
         numTuples(toCopy.numTuples),
         arraySize(toCopy.arraySize),
         tuples(new Tuple*[toCopy.arraySize]),
@@ -52,7 +52,7 @@ Relation::Relation(const Relation& toCopy, const bool * const usedRows) :
         sizeTableRows(toCopy.sizeTableRows),
         sizePayloads(toCopy.sizePayloads) {
     for (uint64_t i = 0; i < toCopy.arraySize; ++i) {
-        tuples[i] = new Tuple(toCopy.tuples[i]);
+        tuples[i] = new Tuple(*(toCopy.tuples[i]));
     }
 }
 
@@ -192,7 +192,7 @@ std::ostream& operator<<(std::ostream& os, const Relation& toPrint) {
             }
             os << toPrint.usedRows[i];
         }
-        os >> "]";
+        os << "]";
     }
         os << ", tuples=";
     if (toPrint.tuples == nullptr) {

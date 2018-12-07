@@ -19,7 +19,7 @@ using namespace std;
 ResultContainer::ResultContainer(uint64_t blockSize,
                                  uint32_t sizeTableRows,
                                  size_t sizePayloads,
-                                 bool* usedRows = nullptr) :
+                                 bool* usedRows) :
         sizeTableRows(sizeTableRows),
         sizePayloads(sizePayloads),
         resultCount(0),
@@ -140,12 +140,29 @@ uint64_t ResultContainer::getResultCount() const {
     return resultCount;
 }
 
-void ResultContainer::loadToRelation(Relation& rel,
-                                     const uint32_t * const payloadTables,
-                                     const uint64_t * const * const payloadCols) const {
+const bool * ResultContainer::getUsedRows() const {
+    return usedRows;
+}
+
+void ResultContainer::setUsedRow(uint32_t row) {
+    if (row >= sizeTableRows) {
+        throw runtime_error("ResultContainer::setUsedRow: index out of bounds [row="
+                            + to_string(row)
+                            + ", sizeTableRows="
+                            + to_string(sizeTableRows)
+                            + "]");
+    }
+    if (!manageUsedRows) {
+        throw runtime_error("ResultContainer::setUsedRow: manageUsedRows is false");
+    }
+    usedRows[row] = true;
+}
+
+Relation ResultContainer::loadToRelation(const uint32_t payloadTable,
+                                     const size_t sizePayloads,
+                                         const uint64_t * const * const payloadCols) const {
+    Relation rel(resultCount, sizeTableRows, sizePayloads, usedRows);
     const Result* currResult = start;
-    uint64_t rowKey = 0;
-    size_t sizePayloads = rel.getSizePayloads();
     while (currResult != nullptr) {
         const Relation& currRelation = currResult->getRelation();
         const uint32_t numTuples = currRelation.getNumTuples();
@@ -153,21 +170,39 @@ void ResultContainer::loadToRelation(Relation& rel,
         for (uint32_t i = 0; i < numTuples; ++i, ++currTuple) {
             Tuple toAdd(*currTuple, sizePayloads);
             const uint64_t * const * currCol = payloadCols;
-            const uint32_t * currPayloadTable = payloadTables;
-            for (size_t j = 0; j < sizePayloads;
-                    ++j, ++currCol, ++payloadTables) {
+            for (size_t j = 0; j < sizePayloads; ++j, ++payloadCols) {
                 toAdd.setPayload(j,
-                                 (*currCol)[toAdd.getTableRow(*currPayloadTable)]);
+                                 (*payloadCols)[toAdd.getTableRow(payloadTable)]);
             }
             rel.addTuple(move(toAdd));
         }
         currResult = start->next;
     }
+    return rel;
 }
 
 std::ostream& operator<<(std::ostream& os, const ResultContainer& toPrint) {
-    todo
-    os << "[ResultContainer start=";
+    os << "[ResultContainer sizeTableRows="
+       << toPrint.sizeTableRows
+       << ", sizePayloads="
+       << toPrint.sizePayloads
+       << ", resultCount="
+       << toPrint.resultCount
+       << ", usedRows=";
+    if (toPrint.usedRows == nullptr) {
+        os << "null";
+    }
+    else {
+        os << "[";
+        for (uint32_t i = 0; i < toPrint.sizeTableRows; ++i) {
+            if (i != 0) {
+                os << ", ";
+            }
+            os << toPrint.usedRows[i];
+        }
+        os << "]";
+    }
+    os << ", manageUsedRows=" << toPrint.manageUsedRows << ", start=";
     if (toPrint.start == nullptr) {
         os << "null";
     }

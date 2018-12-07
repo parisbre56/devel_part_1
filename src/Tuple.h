@@ -25,6 +25,11 @@ public:
     /** Create a Tuple with the values of the given Tuple **/
     Tuple(const Tuple& toCopy);
     Tuple(Tuple&& toMove);
+    /** Merge two tuples, discarding the payload **/
+    Tuple(const Tuple& tupleLeft,
+          const bool* usedRowsLeft,
+          const Tuple& tupleRight,
+          const bool* usedRowsRight);
 
     /** Create a Tuple with the tableRows of the given Tuple
      * but an empty payloads table of the given size **/
@@ -35,13 +40,13 @@ public:
     Tuple& operator=(Tuple&& toMove);
     virtual ~Tuple();
 
-    uint32_t Tuple::getSizeTableRows() const;
-    uint64_t Tuple::getTableRow(uint32_t col) const;
-    void Tuple::setTableRow(uint32_t col, uint64_t rowNum);
+    uint32_t getSizeTableRows() const;
+    uint64_t getTableRow(uint32_t col) const;
+    void setTableRow(uint32_t col, uint64_t rowNum);
 
-    size_t Tuple::getSizePayloads() const;
-    uint64_t Tuple::getPayload(size_t col) const;
-    void Tuple::setPayload(size_t col, uint64_t value);
+    size_t getSizePayloads() const;
+    uint64_t getPayload(size_t col) const;
+    void setPayload(size_t col, uint64_t value);
 
     friend std::ostream& operator<<(std::ostream& os, const Tuple& toPrint);
 };

@@ -44,15 +44,17 @@ public:
     /** Reset the container without releasing storage **/
     void reset();
     uint64_t getResultCount() const;
+    const bool * getUsedRows() const;
+    void setUsedRow(uint32_t col);
     /** Load to the given relation the results contained within.
      * {payloadTables} is an array of size {sizePayloads} that
      * contains numbers < {sizeTableRows} that tells from which
      * table the values will be loaded.
      * {payloadCols} is an array of size {sizePayloads} that has
      * the columns of the table from which the values will be loaded. **/
-    void loadToRelation(Relation& rel,
-                        const uint32_t * const payloadTables,
-                        const uint64_t * const * const payloadCols) const;
+    Relation loadToRelation(const uint32_t payloadTable,
+                            const size_t sizePayloads,
+                            const uint64_t * const * const payloadCols) const;
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const ResultContainer& toPrint);

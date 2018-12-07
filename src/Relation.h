@@ -39,7 +39,7 @@ public:
     /** Copy constructor, copies the filled part of the
      * underlying array from another Relation. **/
     Relation(const Relation& toCopy);
-    Relation(const Relation& toCopy, const bool * const usedRows);
+    Relation(const Relation& toCopy, bool * const usedRows);
     /** Move constructor, moves the underlying array to
      * this Relation. The old relation is left in an unusable state
      * and can only be safely deleted. **/
