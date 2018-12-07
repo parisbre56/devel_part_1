@@ -26,9 +26,13 @@ Tuple::Tuple(const Tuple& toCopy) :
         payloads(
                 toCopy.sizePayloads == 0 ? nullptr :
                                            new uint64_t[toCopy.sizePayloads]) {
-    memcpy(tableRows, toCopy.tableRows, toCopy.sizeTableRows);
+    memcpy(tableRows,
+           toCopy.tableRows,
+           toCopy.sizeTableRows * sizeof(uint64_t));
     if (toCopy.sizePayloads != 0) {
-        memcpy(payloads, toCopy.payloads, toCopy.sizePayloads);
+        memcpy(payloads,
+               toCopy.payloads,
+               toCopy.sizePayloads * sizeof(uint64_t));
     }
 }
 Tuple::Tuple(Tuple&& toMove) :
@@ -36,6 +40,33 @@ Tuple::Tuple(Tuple&& toMove) :
         sizePayloads(toMove.sizePayloads),
         tableRows(toMove.tableRows),
         payloads(toMove.payloads) {
+    toMove.tableRows = nullptr;
+    toMove.payloads = nullptr;
+}
+
+Tuple::Tuple(const Tuple& toCopy, size_t sizePayloads) :
+        sizeTableRows(toCopy.sizeTableRows),
+        sizePayloads(toCopy.sizePayloads),
+        tableRows(new uint64_t[toCopy.sizeTableRows]),
+        payloads(sizePayloads == 0 ? nullptr : new uint64_t[sizePayloads]) {
+    memcpy(tableRows,
+           toCopy.tableRows,
+           toCopy.sizeTableRows * sizeof(uint64_t));
+}
+Tuple::Tuple(Tuple&& toMove, size_t sizePayloads) :
+        sizeTableRows(toMove.sizeTableRows),
+        sizePayloads(sizePayloads),
+        tableRows(toMove.tableRows) {
+    if (toMove.sizePayloads < sizePayloads) {
+        if (toMove.payloads != nullptr) {
+            delete[] toMove.payloads;
+        }
+        payloads = new uint64_t[sizePayloads];
+    }
+    else {
+        //No need to assign new memory, the old table is big enough
+        payloads = toMove.payloads;
+    }
     toMove.tableRows = nullptr;
     toMove.payloads = nullptr;
 }
@@ -53,10 +84,15 @@ Tuple& Tuple::operator=(const Tuple& toCopy) {
     }
     sizeTableRows = toCopy.sizeTableRows;
     sizePayloads = toCopy.sizePayloads;
-    memcpy(tableRows, toCopy.tableRows, toCopy.sizeTableRows);
+    memcpy(tableRows,
+           toCopy.tableRows,
+           toCopy.sizeTableRows * sizeof(uint64_t));
     if (toCopy.sizePayloads != 0) {
-        memcpy(payloads, toCopy.payloads, toCopy.sizePayloads);
+        memcpy(payloads,
+               toCopy.payloads,
+               toCopy.sizePayloads * sizeof(uint64_t));
     }
+    return *this;
 }
 
 Tuple& Tuple::operator=(Tuple&& toMove) {
@@ -70,6 +106,7 @@ Tuple& Tuple::operator=(Tuple&& toMove) {
     toMove.payloads = nullptr;
     sizeTableRows = toMove.sizeTableRows;
     sizePayloads = toMove.sizePayloads;
+    return *this;
 }
 
 Tuple::~Tuple() {

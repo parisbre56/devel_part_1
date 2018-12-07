@@ -25,6 +25,11 @@ public:
     /** Create a Tuple with the values of the given Tuple **/
     Tuple(const Tuple& toCopy);
     Tuple(Tuple&& toMove);
+
+    /** Create a Tuple with the tableRows of the given Tuple
+     * but an empty payloads table of the given size **/
+    Tuple(const Tuple& toCopy, size_t sizePayloads);
+    Tuple(Tuple&& toMove, size_t sizePayloads);
     /** Set the values of this Tuple to the values of the assigned Tuple **/
     Tuple& operator=(const Tuple& toCopy);
     Tuple& operator=(Tuple&& toMove);

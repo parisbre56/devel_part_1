@@ -37,7 +37,20 @@ Relation::Relation(const Relation& toCopy) :
         manageUsedRows(true),
         sizeTableRows(toCopy.sizeTableRows),
         sizePayloads(toCopy.sizePayloads) {
-    memcpy(usedRows, toCopy.usedRows, toCopy.sizeTableRows);
+    memcpy(usedRows, toCopy.usedRows, toCopy.sizeTableRows * sizeof(bool));
+    for (uint64_t i = 0; i < toCopy.arraySize; ++i) {
+        tuples[i] = new Tuple(toCopy.tuples[i]);
+    }
+}
+
+Relation::Relation(const Relation& toCopy, const bool * const usedRows) :
+        numTuples(toCopy.numTuples),
+        arraySize(toCopy.arraySize),
+        tuples(new Tuple*[toCopy.arraySize]),
+        usedRows(usedRows),
+        manageUsedRows(false),
+        sizeTableRows(toCopy.sizeTableRows),
+        sizePayloads(toCopy.sizePayloads) {
     for (uint64_t i = 0; i < toCopy.arraySize; ++i) {
         tuples[i] = new Tuple(toCopy.tuples[i]);
     }
@@ -131,7 +144,7 @@ void Relation::addTuple(Tuple&& tuple) {
                             + to_string(arraySize)
                             + "]");
     }
-    tuples[numTuples++] = new Tuple(tuple);
+    tuples[numTuples++] = new Tuple(move(tuple));
 }
 /** Get the tuple at the given index. **/
 const Tuple* const * const Relation::getTuples() const {
@@ -141,7 +154,7 @@ const Tuple& Relation::getTuple(uint64_t index) const {
     return *(tuples[index]);
 }
 
-void Relation::reset() {
+void Relation::reset() { //TODO can be made more efficient by reusing tuples
     for (uint64_t i = 0; i < numTuples; ++i) {
         delete tuples[i];
     }
@@ -168,7 +181,19 @@ std::ostream& operator<<(std::ostream& os, const Relation& toPrint) {
        << ", manageUsedRows="
        << toPrint.manageUsedRows
        << ", usedRows=";
-    if (toPrint) //TODO
+    if (toPrint.usedRows == nullptr) {
+        os << "null";
+    }
+    else {
+        os << "[";
+        for (size_t i = 0; i < toPrint.sizeTableRows; ++i) {
+            if (i != 0) {
+                os << ", ";
+            }
+            os << toPrint.usedRows[i];
+        }
+        os >> "]";
+    }
         os << ", tuples=";
     if (toPrint.tuples == nullptr) {
         os << "null";

@@ -17,16 +17,16 @@
 
 class ResultContainer {
 protected:
-    Result* start;
-    Result* end;
+    uint32_t sizeTableRows;
+    size_t sizePayloads;
 
     uint64_t resultCount;
 
     bool* usedRows;
     bool manageUsedRows;
 
-    uint32_t sizeTableRows;
-    size_t sizePayloads;
+    Result* start;
+    Result* end;
 public:
     ResultContainer() = delete;
     ResultContainer(uint64_t blockSize,
@@ -51,7 +51,6 @@ public:
      * {payloadCols} is an array of size {sizePayloads} that has
      * the columns of the table from which the values will be loaded. **/
     void loadToRelation(Relation& rel,
-                        const size_t sizePayloads,
                         const uint32_t * const payloadTables,
                         const uint64_t * const * const payloadCols) const;
 

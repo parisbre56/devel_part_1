@@ -14,86 +14,43 @@
 
 using namespace std;
 
-Result::Result() {
-    tuples = new Tuple[RESULT_H_BLOCK_SIZE];
-    numTuples = 0;
-    next = nullptr;
+Result::Result(uint64_t blockSize,
+               int32_t sizeTableRows,
+               size_t sizePayloads,
+               bool* usedRows) :
+        sizeTableRows(sizeTableRows),
+        sizePayloads(sizePayloads),
+        usedRows(usedRows),
+        relation(new Relation(blockSize,
+                              sizeTableRows,
+                              sizePayloads,
+                              usedRows)),
+        next(nullptr) {
+
 }
 
-Result::Result(const Result& toCopy) {
-    tuples = new Tuple[RESULT_H_BLOCK_SIZE];
-    copyValuesInternal(toCopy);
+Result::Result(const Result& toCopy, const bool * const usedRows) :
+        sizeTableRows(toCopy.sizeTableRows),
+        sizePayloads(toCopy.sizePayloads),
+        usedRows(usedRows),
+        relation(new Relation(toCopy.relation, usedRows)),
+        next(toCopy.next == nullptr ? nullptr :
+                                      new Result(toCopy.next, usedRows)) { //TODO can do better performance by eliminating recursion
 }
 
-Result& Result::operator=(const Result& toCopy) {
-    copyValuesInternal(toCopy);
-    return *this;
-}
-
-void Result::copyValuesInternal(const Result& toCopy) {
-    Result* ptSelf = this;
-    const Result* ptOther = &toCopy;
-
-    //Copy all segments
-    while (true) {
-        ptSelf->numTuples = ptOther->numTuples;
-        //If there are no data in this segment, there's no reason to continue,
-        //we're certain there won't be any data in the next segments
-        if (ptOther->numTuples == 0) {
-            break;
-        }
-        //Copy data to the new segment
-        memcpy(ptSelf->tuples,
-               ptOther->tuples,
-               sizeof(Tuple) * ptOther->numTuples);
-
-        //If there is no next segment in the other, break
-        ptOther = ptOther->next;
-        if (ptOther == nullptr) {
-            break;
-        }
-
-        //Else, If there is a next segment in the other, create
-        //a next segment for self if necessary
-        if (ptSelf->next == nullptr) {
-            ptSelf->next = new Result();
-        }
-        ptSelf = ptSelf->next;
-    }
-    //Empty out all remaining segments in self
-    ptSelf = ptSelf->next;
-    while (ptSelf != nullptr && ptSelf->numTuples > 0) {
-        ptSelf = ptSelf->next;
-        ptSelf->numTuples = 0;
-    }
-}
-
-Result::Result(Result&& toMove) {
-    moveValuesInternal(toMove);
-}
-
-Result& Result::operator=(Result&& toMove) {
-    if (tuples != nullptr) {
-        delete tuples;
-    }
-    if (next != nullptr) {
-        delete next;
-    }
-    moveValuesInternal(toMove);
-    return *this;
-}
-
-void Result::moveValuesInternal(Result& toMove) {
-    numTuples = toMove.numTuples;
-    tuples = toMove.tuples;
-    next = toMove.next;
-    toMove.tuples = nullptr;
+Result::Result(Result&& toMove) :
+        sizeTableRows(toMove.sizeTableRows),
+        sizePayloads(toMove.sizePayloads),
+        usedRows(toMove.usedRows),
+        relation(toMove.relation),
+        next(toMove.next) {
+    toMove.relation = nullptr;
     toMove.next = nullptr;
 }
 
 Result::~Result() {
-    if (tuples != nullptr) {
-        delete[] tuples;
+    if (relation != nullptr) {
+        delete relation;
     }
     //Don't recurse deletion for better performance
     while (next != nullptr) {
@@ -103,13 +60,9 @@ Result::~Result() {
         delete toDelete;
     }
 }
-
-uint32_t Result::getNumTuples() const {
-    return numTuples;
-}
-
-const Tuple * Result::getTuples() const {
-    return tuples;
+/** The tuples in this segment **/
+const Relation& Result::getRelation() const {
+    return *relation;
 }
 
 Result* Result::getLastSegment() {
@@ -122,48 +75,67 @@ Result* Result::getLastSegment() {
 
 Result* Result::getFirstNonFullSegment() {
     Result* retVal = this;
-    while (retVal->numTuples == RESULT_H_BLOCK_SIZE && retVal->next != nullptr) {
+    while (retVal->relation->getNumTuples() == retVal->relation->getArraySize()
+           && retVal->next != nullptr) {
         retVal = retVal->next;
     }
     return retVal;
 }
 
-Result* Result::addTuple(Tuple& toAdd) {
-    Result* retVal = nullptr;
-    Result* lastSegment = this;
-    if (lastSegment->numTuples == RESULT_H_BLOCK_SIZE) {
+void Result::getLastSegment(Result*& lastSegment, Result*& createdSegment) {
+    lastSegment = this;
+    createdSegment = nullptr;
+    if (lastSegment->relation->getNumTuples()
+        == lastSegment->relation->getArraySize()) {
         lastSegment = getFirstNonFullSegment();
-        if (lastSegment->numTuples == RESULT_H_BLOCK_SIZE) {
-            lastSegment->next = new Result();
+        if (lastSegment->relation->getNumTuples()
+            == lastSegment->relation->getArraySize()) {
+            lastSegment->next = new Result(relation->getArraySize(),
+                                           sizeTableRows,
+                                           sizePayloads,
+                                           usedRows);
             lastSegment = lastSegment->next;
         }
-        retVal = lastSegment;
+        createdSegment = lastSegment;
     }
-    lastSegment->tuples[lastSegment->numTuples++] = toAdd;
+}
+
+Result* Result::addTuple(Tuple& toAdd) {
+    Result* lastSegment;
+    Result* retVal;
+    getLastSegment(lastSegment, retVal);
+    lastSegment->relation->addTuple(toAdd);
+    return retVal;
+}
+
+Result* Result::addTuple(Tuple&& toAdd) {
+    Result* lastSegment;
+    Result* retVal;
+    getLastSegment(lastSegment, retVal);
+    lastSegment->relation->addTuple(move(toAdd));
     return retVal;
 }
 
 void Result::reset() {
     Result* currResult = this;
     do {
-        currResult->numTuples = 0;
-        currResult = currResult->next;
+        currResult->relation->reset();
     } while (currResult != nullptr);
 }
 
 std::ostream& operator<<(std::ostream& os, const Result& toPrint) {
-    os << "[Result numTuples=" << toPrint.numTuples << ", tuples=";
-    if (toPrint.tuples == nullptr) {
-        os << "null";
-    }
-    else {
-        os << "[";
-        for (uint32_t i = 0; i < toPrint.numTuples; ++i) {
-            os << "\n\t" << i << ": " << toPrint.tuples[i];
+    os << "[Result sizeTableRows="
+       << toPrint.sizeTableRows
+       << ", sizePayloads="
+       << toPrint.sizePayloads
+       << ", usedRows=[";
+    for (uint32_t i = 0; i < toPrint.sizeTableRows; ++i) {
+        if (i != 0) {
+            os << ", ";
         }
-        os << "]";
+        os << toPrint.usedRows[i];
     }
-    os << ", next=";
+    os << "], relation=" << toPrint.relation << ", next=";
     if (toPrint.next == nullptr) {
         os << "null";
     }

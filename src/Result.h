@@ -12,6 +12,7 @@
 #include <string>
 
 #include "Tuple.h"
+#include "Relation.h"
 
 //TODO dynamically compute?
 //1MB divided by size of Tuple gives us the number of Tuple we can store
@@ -19,37 +20,43 @@
 
 class Result {
 protected:
-    Relation* relation;
-    Result* next;
+    uint32_t sizeTableRows;
+    size_t sizePayloads;
 
     bool* usedRows;
 
-    uint32_t sizeTableRows;
-    size_t sizePayloads;
+    Relation* relation;
+    Result* next;
+
+    void getLastSegment(Result*& lastSegment, Result*& createdSegment);
+
 public:
     Result() = delete;
-    /** Creates a new empty Result **/
+    /** Creates a new empty Result. Does not manage usedRows **/
     Result(uint64_t blockSize,
            int32_t sizeTableRows,
            size_t sizePayloads,
            bool* usedRows);
     /** Copy constructor, copies the contents of the given Result
-     * to the new Result. **/
-    Result(const Result& toCopy);
+     * to the new Result. Need to explicitly provide usedRows since
+     * we don't know who is the owner of that memory in relation to this
+     * object. **/
+    Result(const Result& toCopy) = delete;
+    Result(const Result& toCopy, const bool * const usedRows);
     /** Move the data from the given Result to a new one. The old
      * Result is left empty and unusable, it can only be deleted. **/
     Result(Result&& toMove);
     /** Copy assignment operator, copies the content of the given Result
      * to the new Result. If this has more segments than toCopy, then those
      * segments will be left empty but will not be deleted. **/
-    Result& operator=(const Result& toCopy);
+    Result& operator=(const Result& toCopy) = delete;
     /** Move assignment operator, move the data from the given Result
      * to this one. If this result contains data it will be deleted.
      * The old result is left unusable and can only be deleted. **/
-    Result& operator=(Result&& toMove);
+    Result& operator=(Result&& toMove) = delete;
     virtual ~Result();
 
-    /** The number of tuples in this segment **/
+    /** The tuples in this segment **/
     const Relation& getRelation() const;
 
     /** Returns the last segment for this chain of results. **/
@@ -63,6 +70,7 @@ public:
      * if it was inserted into a segment other than this
      * or null if it was inserted to this segment. **/
     Result* addTuple(Tuple& toAdd);
+    /** Move a tuple **/
     Result* addTuple(Tuple&& toAdd);
 
     void reset();

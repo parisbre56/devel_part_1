@@ -39,6 +39,7 @@ public:
     /** Copy constructor, copies the filled part of the
      * underlying array from another Relation. **/
     Relation(const Relation& toCopy);
+    Relation(const Relation& toCopy, const bool * const usedRows);
     /** Move constructor, moves the underlying array to
      * this Relation. The old relation is left in an unusable state
      * and can only be safely deleted. **/
@@ -62,6 +63,7 @@ public:
      * The Relation will delete the created Tuple when it
      * is deleted. **/
     void addTuple(Tuple& tuple);
+    /** Move a tuple **/
     void addTuple(Tuple&& tuple);
     /** Get the tuple at the given index. **/
     const Tuple* const * const getTuples() const;
