@@ -7,6 +7,7 @@
 
 #ifndef TABLE_H_
 #define TABLE_H_
+class Table;
 
 #include <cstdint>
 #include <string>

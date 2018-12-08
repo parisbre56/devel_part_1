@@ -65,6 +65,10 @@ const Relation& Result::getRelation() const {
     return *relation;
 }
 
+Result* Result::getNext() const {
+    return next;
+}
+
 Result* Result::getLastSegment() {
     Result* retVal = this;
     while (retVal->next != nullptr) {

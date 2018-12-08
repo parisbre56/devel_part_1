@@ -84,9 +84,11 @@ void Metadata::endJoin() {
 }
 void Metadata::endBatch() {
     if (activeJoin != nullptr) {
-        this->endJoin();
+        endJoin();
     }
-    //TODO
+    for (uint32_t i = 0; i < joinsInBatch; ++i) {
+        batch[i]->performJoin();
+    }
     resetBatch();
 }
 

@@ -7,6 +7,7 @@
 
 #ifndef RESULT_H_
 #define RESULT_H_
+class Result;
 
 #include <cstdint>
 #include <string>
@@ -59,6 +60,7 @@ public:
     /** The tuples in this segment **/
     const Relation& getRelation() const;
 
+    Result* getNext() const;
     /** Returns the last segment for this chain of results. **/
     Result* getLastSegment();
     /** Return the first non-full segment. Or the last segment if none exist. **/

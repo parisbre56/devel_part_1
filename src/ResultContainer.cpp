@@ -110,6 +110,10 @@ ResultContainer::~ResultContainer() {
     }
 }
 
+const Result* ResultContainer::getFirstResultBlock() const {
+    return start;
+}
+
 void ResultContainer::addTuple(Tuple& toAdd) {
     if (resultCount != numeric_limits<uint64_t>::max()) {
         ++resultCount;
@@ -166,17 +170,17 @@ Relation ResultContainer::loadToRelation(const uint32_t payloadTable,
     while (currResult != nullptr) {
         const Relation& currRelation = currResult->getRelation();
         const uint32_t numTuples = currRelation.getNumTuples();
-        const Tuple * currTuple = currRelation.getTuples();
+        const Tuple * const * currTuple = currRelation.getTuples();
         for (uint32_t i = 0; i < numTuples; ++i, ++currTuple) {
-            Tuple toAdd(*currTuple, sizePayloads);
+            Tuple toAdd(**currTuple, sizePayloads);
             const uint64_t * const * currCol = payloadCols;
-            for (size_t j = 0; j < sizePayloads; ++j, ++payloadCols) {
+            for (size_t j = 0; j < sizePayloads; ++j, ++currCol) {
                 toAdd.setPayload(j,
                                  (*payloadCols)[toAdd.getTableRow(payloadTable)]);
             }
             rel.addTuple(move(toAdd));
         }
-        currResult = start->next;
+        currResult = currResult->getNext();
     }
     return rel;
 }

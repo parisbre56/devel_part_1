@@ -7,6 +7,7 @@
 
 #ifndef TABLELOADER_H_
 #define TABLELOADER_H_
+class TableLoader;
 
 #include "Table.h"
 

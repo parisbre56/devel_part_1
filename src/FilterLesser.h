@@ -7,6 +7,7 @@
 
 #ifndef FILTERLESSER_H_
 #define FILTERLESSER_H_
+class FilterLesser;
 
 #include "Filter.h"
 

@@ -7,6 +7,7 @@
 
 #ifndef JOIN_H_
 #define JOIN_H_
+class Join;
 
 #include "TableLoader.h"
 #include "Filter.h"
@@ -30,21 +31,20 @@ protected:
     uint32_t joinRelationNum;
     const JoinRelation** joinRelations;
     uint32_t sumColumnNum;
-    const TableColumn** sumColumns;
+    const TableColumn** sumColumns; //TODO reorder to bring same table closer?
     //Current results of joining, each relation is stored in its own resultContainer
     ResultContainer** resultContainers;
 
     const JoinRelation* findSmallestRelation(const bool* const isRelationProcessed,
-                                       const ResultContainer* const * const resultLocation,
-                                       uint32_t& smallestRelationIndex,
-                                       uint32_t& sameTableRelations) const;
+                                             uint32_t& smallestRelationIndex,
+                                             uint32_t& sameTableRelations) const;
     Relation loadRelation(const uint32_t tableReference,
                           const uint32_t colsToProcessNum,
-                          const size_t* const colsToProcess,
-                          const ResultContainer* const * const resultLocation) const;
+                          const size_t* const colsToProcess) const;
     ResultContainer radixHashJoin(const Relation& relR,
                                   const Relation& relS) const;
-
+    void storeResut(ResultContainer* newResult);
+    void fillSums(JoinSumResult& retVal) const;
 public:
     Join() = delete;
     Join(const TableLoader& tableLoader, uint32_t arraySize);

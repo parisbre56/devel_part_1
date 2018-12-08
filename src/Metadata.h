@@ -7,6 +7,7 @@
 
 #ifndef METADATA_H_
 #define METADATA_H_
+class Metadata;
 
 #include "TableLoader.h"
 #include "Join.h"

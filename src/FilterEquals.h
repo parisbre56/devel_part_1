@@ -7,6 +7,7 @@
 
 #ifndef FILTEREQUALS_H_
 #define FILTEREQUALS_H_
+class FilterEquals;
 
 #include "Filter.h"
 

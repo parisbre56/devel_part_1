@@ -7,6 +7,7 @@
 
 #ifndef BUCKETANDCHAIN_H_
 #define BUCKETANDCHAIN_H_
+class BucketAndChain;
 
 #include <cstdint>
 #include <string>

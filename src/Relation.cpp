@@ -81,6 +81,21 @@ Relation::~Relation() {
     }
 }
 
+ResultContainer Relation::operator*(const Relation& cartesianProduct) const {
+    ResultContainer retResult(10000/*TODO*/, sizeTableRows, 0);
+    for (uint64_t i = 0; i < numTuples; ++i) {
+        for (uint64_t j = 0; j < cartesianProduct.numTuples; ++j) {
+            const bool* const usedRows = retResult.getUsedRows();
+            Tuple toAdd(*(tuples[i]),
+                        usedRows,
+                        *(cartesianProduct.tuples[j]),
+                        usedRows);
+            retResult.addTuple(move(toAdd));
+        }
+    }
+    return retResult;
+}
+
 uint64_t Relation::getNumTuples() const {
     return numTuples;
 }
@@ -194,7 +209,7 @@ std::ostream& operator<<(std::ostream& os, const Relation& toPrint) {
         }
         os << "]";
     }
-        os << ", tuples=";
+    os << ", tuples=";
     if (toPrint.tuples == nullptr) {
         os << "null";
     }

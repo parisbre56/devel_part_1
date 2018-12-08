@@ -7,6 +7,7 @@
 
 #ifndef TABLECOLUMN_H_
 #define TABLECOLUMN_H_
+class TableColumn;
 
 #include <iostream>
 

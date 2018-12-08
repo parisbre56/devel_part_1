@@ -7,6 +7,7 @@
 
 #ifndef RESULTCONTAINER_H_
 #define RESULTCONTAINER_H_
+class ResultContainer;
 
 #include <string>
 
@@ -38,6 +39,8 @@ public:
     ResultContainer& operator=(const ResultContainer& toCopy);
     ResultContainer& operator=(ResultContainer&& toMove);
     virtual ~ResultContainer();
+
+    const Result* getFirstResultBlock() const;
 
     void addTuple(Tuple& toAdd);
     void addTuple(Tuple&& toAdd);

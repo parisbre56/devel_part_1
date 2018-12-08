@@ -7,6 +7,7 @@
 
 #ifndef JOINRELATION_H_
 #define JOINRELATION_H_
+class JoinRelation;
 
 #include "Tuple.h"
 

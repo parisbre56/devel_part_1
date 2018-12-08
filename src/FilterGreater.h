@@ -7,6 +7,7 @@
 
 #ifndef FILTERGREATER_H_
 #define FILTERGREATER_H_
+class FilterGreater;
 
 #include "Filter.h"
 

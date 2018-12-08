@@ -7,6 +7,7 @@
 
 #ifndef CONSOLEOUTPUT_H_
 #define CONSOLEOUTPUT_H_
+class ConsoleOutput;
 
 #include <string>
 #include <ostream>

@@ -114,13 +114,6 @@ int main(int argc, char* argv[]) {
     ConsoleOutput consoleOutput("Main");
 
     try {
-        consoleOutput.errorOutput() << "Result block size tuples are: "
-                                    << RESULT_H_BLOCK_SIZE
-                                    << endl;
-        consoleOutput.errorOutput() << "Result block size bytes are: "
-                                    << (RESULT_H_BLOCK_SIZE * sizeof(Tuple))
-                                    << endl;
-
         consoleOutput.errorOutput() << "PART_1 EXECUTION STARTED" << endl;
         clock_t start = clock();
 

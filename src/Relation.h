@@ -7,6 +7,7 @@
 
 #ifndef RELATION_H_
 #define RELATION_H_
+class Relation;
 
 #include <string>
 #include <vector>
@@ -14,6 +15,7 @@
 #include <cstdint>
 
 #include "Tuple.h"
+#include "ResultContainer.h"
 
 #define RELATION_H_DEFAULT_TUPLE_LENGTH 1000
 #define RELATION_H_DEFAULT_INCREASE 1000
@@ -47,6 +49,8 @@ public:
     /** Copy assignment disabled **/
     Relation& operator=(const Relation& toCopy) = delete;
     virtual ~Relation();
+
+    ResultContainer operator*(const Relation& cartesianProduct) const;
 
     uint64_t getNumTuples() const;
     uint64_t getArraySize() const;
