@@ -104,8 +104,8 @@ void Metadata::endBatch() {
             }
             cout << endl;
         }
-        resetBatch();
     }
+    resetBatch();
 }
 
 ostream& operator<<(ostream& os, const Metadata& toPrint) {
