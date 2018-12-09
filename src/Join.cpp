@@ -257,6 +257,22 @@ JoinSumResult Join::performJoin() {
                    "No data, not performing join [tableNum=" << tableNum << ", sumColumnNum=" << sumColumnNum << "]");
         return retVal;
     }
+    //Special case: only one table
+    if (tableNum == 1) {
+        CO_IFDEBUG(consoleOutput, "Processing single table");
+        Relation rel(loadRelation(0, 0, nullptr));
+        if (rel.getNumTuples() == 0) {
+            CO_IFDEBUG(consoleOutput, "Filtered table empty, no result");
+            return retVal;
+        }
+        retVal.setHasResults();
+
+        const uint64_t * sumCols[sumColumnNum];
+        uint32_t sumTable[sumColumnNum];
+        fillSumTables(sumCols, sumTable);
+
+        fillSumsFromRelation(retVal, rel, sumCols, sumTable);
+    }
     //Determines which result holds the rows for table. Initialized to nullptr when a table has not been joined.
     bool isRelationProcessed[joinRelationNum] { /* init to false */};
     resultContainers = new ResultContainer*[tableNum] {/* init to nullptr */};
@@ -406,33 +422,48 @@ JoinSumResult Join::performJoin() {
 
     fillSums(retVal);
 
-    //TODO edge case = 1 table
-    //TODO checks for corner cases (what if only 1 table?)
-    //TODO  break if empty at any time
     return retVal;
 }
 
-void Join::fillSums(JoinSumResult& retVal) const {
-    retVal.setHasResults();
-    const uint64_t * sumCols[sumColumnNum];
-    uint32_t sumTable[sumColumnNum];
+void Join::fillSumTables(const uint64_t* * const sumCols,
+                         uint32_t * const sumTable) const {
     for (uint32_t i = 0; i < sumColumnNum; ++i) {
         const TableColumn& currSumColumn = *(sumColumns[i]);
         sumCols[i] = tableLoader.getTable(tables[sumTable[i] = currSumColumn.getTableNum()]).getCol(currSumColumn.getTableCol());
     }
+}
+
+void Join::fillSums(JoinSumResult& retVal) const {
+    if (resultContainers[0]->getResultCount() == 0) {
+        return;
+    }
+    retVal.setHasResults();
+
+    const uint64_t * sumCols[sumColumnNum];
+    uint32_t sumTable[sumColumnNum];
+    fillSumTables(sumCols, sumTable);
+
     const Result* currResult = resultContainers[0]->getFirstResultBlock();
     while (currResult != nullptr) {
-        const Relation& currRel = currResult->getRelation();
-        const uint64_t relRows = currRel.getNumTuples();
-        const Tuple * const * tuples = currRel.getTuples();
-        for (uint64_t rowNum = 0; rowNum < relRows; ++rowNum) {
-            const Tuple& currTuple = *(tuples[rowNum]);
-            for (uint32_t i = 0; i < sumColumnNum; ++i) {
-                retVal.addSum(i,
-                              sumCols[i][currTuple.getTableRow(sumTable[i])]);
-            }
-        }
+        fillSumsFromRelation(retVal,
+                             currResult->getRelation(),
+                             sumCols,
+                             sumTable);
         currResult = currResult->getNext();
+    }
+}
+
+void Join::fillSumsFromRelation(JoinSumResult& retVal,
+                                const Relation& currRel,
+                                const uint64_t * const * const sumCols,
+                                const uint32_t * const sumTable) const {
+    const uint64_t relRows = currRel.getNumTuples();
+    const Tuple * const * tuples = currRel.getTuples();
+    for (uint64_t rowNum = 0; rowNum < relRows; ++rowNum) {
+        const Tuple& currTuple = *(tuples[rowNum]);
+        for (uint32_t i = 0; i < sumColumnNum; ++i) {
+            retVal.addSum(i, sumCols[i][currTuple.getTableRow(sumTable[i])]);
+        }
     }
 }
 

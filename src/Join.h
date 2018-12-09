@@ -45,6 +45,13 @@ protected:
                                   const Relation& relS) const;
     void storeResut(ResultContainer* newResult);
     void fillSums(JoinSumResult& retVal) const;
+    void fillSumsFromRelation(JoinSumResult& retVal,
+                              const Relation& currRel,
+                              const uint64_t * const * const sumCols,
+                              const uint32_t * const sumTable) const;
+    void fillSumTables(const uint64_t* * const sumCols,
+                       uint32_t * const sumTable) const;
+
 public:
     Join() = delete;
     Join(const TableLoader& tableLoader, uint32_t arraySize);
