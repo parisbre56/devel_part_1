@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
         else {
             string input;
             do {
-                cout << "Give the path to an input file or write 'Done' to stop giving input files: "
+                cerr << "Give the path to an input file or write 'Done' to stop giving input files: "
                      << endl;
                 getline(cin, input);
                 if (cin.fail() || cin.eof()) {
@@ -177,7 +177,7 @@ int main(int argc, char* argv[]) {
         else {
             string input;
             do {
-                cout << "Give a join expression, F to end the batch or Done to exit: "
+                cerr << "Give a join expression, F to end the batch or Done to exit: "
                      << endl;
                 if (cin.eof()) {
                     input = "Done";
