@@ -278,7 +278,7 @@ JoinSumResult Join::performJoin() {
         Relation relL(loadRelation(smallestRelation->getLeftNum(),
                                    sameTableRelations,
                                    colsToProcessLeft));
-        Relation relR(loadRelation(smallestRelation->getLeftNum(),
+        Relation relR(loadRelation(smallestRelation->getRightNum(),
                                    sameTableRelations,
                                    colsToProcessRight));
 
@@ -543,6 +543,7 @@ Relation Join::loadRelation(const uint32_t tableReference,
         //Load data
         const uint64_t rows = joinTableLoaded.getRows();
         Relation retVal(rows, tableNum, colsToProcessNum);
+        retVal.setUsedRow(tableReference);
         for (uint64_t currRowNum = 0; currRowNum < rows; currRowNum++) {
             //Apply filters for this table
             bool failedFilters = false;
