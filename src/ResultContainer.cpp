@@ -26,9 +26,9 @@ ResultContainer::ResultContainer(uint64_t blockSize,
         usedRows(
                 usedRows == nullptr ? new bool[sizeTableRows] { /*init to false*/} :
                                       usedRows),
-        manageUsedRows(usedRows == nullptr),
-        end(nullptr) {
+        manageUsedRows(usedRows == nullptr) {
     start = new Result(blockSize, sizeTableRows, sizePayloads, this->usedRows);
+    end = start;
 }
 
 ResultContainer::ResultContainer(const ResultContainer& toCopy) :
