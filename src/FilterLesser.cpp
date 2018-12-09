@@ -10,12 +10,12 @@
 using namespace std;
 
 FilterLesser::FilterLesser(uint32_t table, size_t col, uint64_t value) :
-        Filter(table, col, value) {
+        FilterNumericValue(table, col, value) {
 
 }
 
-bool FilterLesser::passesFilter(uint64_t value) const {
-    return value < this->value;
+bool FilterLesser::passesFilter(const Table& table, uint64_t rownum) const {
+    return table.getValue(rownum, col) < value;
 }
 
 void FilterLesser::write(ostream& os) const {

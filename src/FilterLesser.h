@@ -7,11 +7,12 @@
 
 #ifndef FILTERLESSER_H_
 #define FILTERLESSER_H_
+
 class FilterLesser;
 
-#include "Filter.h"
+#include "FilterNumericValue.h"
 
-class FilterLesser: public Filter {
+class FilterLesser: public FilterNumericValue {
     virtual void write(std::ostream& os) const;
 public:
     FilterLesser() = delete;
@@ -22,7 +23,7 @@ public:
     FilterLesser& operator=(FilterLesser&& toMove) = delete;
     virtual ~FilterLesser();
 
-    virtual bool passesFilter(uint64_t value) const;
+    virtual bool passesFilter(const Table& table, uint64_t rownum) const;
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const FilterLesser& toPrint);

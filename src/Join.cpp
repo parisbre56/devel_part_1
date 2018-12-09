@@ -14,6 +14,7 @@
 #include "Relation.h"
 #include "HashTable.h"
 #include "BucketAndChain.h"
+#include "FilterSameTable.h"
 
 using namespace std;
 
@@ -102,9 +103,6 @@ void Join::addTableRelationship(uint32_t tableA,
     if (joinRelations == nullptr) {
         throw runtime_error("Join no longer valid, can't add relationship");
     }
-    if (joinRelationNum >= arraySize) {
-        throw runtime_error("Reached limit, can't add more relations");
-    }
     if (tableA >= tableNum) {
         throw runtime_error("addTableRelationship: unknown table [tableA="
                             + to_string(tableA)
@@ -141,10 +139,24 @@ void Join::addTableRelationship(uint32_t tableA,
                             + to_string(tableLoader.getTable(tables[tableB]).getCols())
                             + "]");
     }
-    joinRelations[joinRelationNum++] = new JoinRelation(tableA,
-                                                        columnA,
-                                                        tableB,
-                                                        columnB);
+    if (tableA == tableB) {
+        if (filters == nullptr) {
+            throw runtime_error("Join no longer valid, can't add same table filter");
+        }
+        if (filterNum >= arraySize) {
+            throw runtime_error("Reached limit, can't add same table filter");
+        }
+        filters[filterNum++] = new FilterSameTable(tableA, columnA, columnB);
+    }
+    else {
+        if (joinRelationNum >= arraySize) {
+            throw runtime_error("Reached limit, can't add more relations");
+        }
+        joinRelations[joinRelationNum++] = new JoinRelation(tableA,
+                                                            columnA,
+                                                            tableB,
+                                                            columnB);
+    }
 }
 void Join::addTableFilter(uint32_t table,
                           size_t column,
@@ -558,8 +570,7 @@ Relation Join::loadRelation(const uint32_t tableReference,
             for (uint32_t filterIndex = 0; filterIndex < filtersToApplyNum;
                     ++filterIndex) {
                 const Filter& currFilter = *(filtersToApply[filterIndex]);
-                if (!currFilter.passesFilter(joinTableLoaded.getValue(currRowNum,
-                                                                      currFilter.getCol()))) {
+                if (!currFilter.passesFilter(joinTableLoaded, currRowNum)) {
                     failedFilters = true;
                     break;
                 }

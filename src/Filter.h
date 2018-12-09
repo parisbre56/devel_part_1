@@ -14,16 +14,17 @@ class Filter;
 #include <string>
 #include <iostream>
 
+#include "Table.h"
+
 class Filter {
 protected:
     const uint32_t table;
     const size_t col;
-    const uint64_t value;
 
     virtual void write(std::ostream& os) const = 0;
 public:
     Filter() = delete;
-    Filter(uint32_t table, size_t col, uint64_t value);
+    Filter(uint32_t table, size_t col);
     Filter(const Filter& toCopy) = delete;
     Filter(Filter&& toMove) = delete;
     Filter& operator=(const Filter& toCopy) = delete;
@@ -31,7 +32,7 @@ public:
     virtual ~Filter();
 
     /** True if value should be kept, false if value should be discarded **/
-    virtual bool passesFilter(uint64_t value) const = 0;
+    virtual bool passesFilter(const Table& table, uint64_t rownum) const = 0;
     uint32_t getTable() const;
     size_t getCol() const;
 

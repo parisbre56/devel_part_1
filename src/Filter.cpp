@@ -7,8 +7,8 @@
 
 #include "Filter.h"
 
-Filter::Filter(uint32_t table, size_t col, uint64_t value) :
-        table(table), col(col), value(value) {
+Filter::Filter(uint32_t table, size_t col) :
+        table(table), col(col) {
 
 }
 

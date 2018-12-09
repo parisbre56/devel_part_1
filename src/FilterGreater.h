@@ -7,11 +7,12 @@
 
 #ifndef FILTERGREATER_H_
 #define FILTERGREATER_H_
+
 class FilterGreater;
 
-#include "Filter.h"
+#include "FilterNumericValue.h"
 
-class FilterGreater: public Filter {
+class FilterGreater: public FilterNumericValue {
     virtual void write(std::ostream& os) const;
 public:
     FilterGreater() = delete;
@@ -22,7 +23,7 @@ public:
     FilterGreater& operator=(FilterGreater&& toMove) = delete;
     virtual ~FilterGreater();
 
-    virtual bool passesFilter(uint64_t value) const;
+    virtual bool passesFilter(const Table& table, uint64_t rownum) const;
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const FilterGreater& toPrint);
