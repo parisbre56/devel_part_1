@@ -24,14 +24,14 @@
 using namespace std;
 
 enum ParseState {
-    START,
-    TABLE,
-    TABLE_COL_START,
-    TABLE_COL,
-    CONDITION,
-    TABLE_TWO,
-    TABLE_TWO_COL_START,
-    TABLE_TWO_COL
+    START = 0,
+    TABLE = 1,
+    TABLE_COL_START = 2,
+    TABLE_COL = 3,
+    CONDITION = 4,
+    TABLE_TWO = 5,
+    TABLE_TWO_COL_START = 6,
+    TABLE_TWO_COL = 7
 };
 
 ResultContainer radixHashJoin(Relation& relR, Relation& relS);

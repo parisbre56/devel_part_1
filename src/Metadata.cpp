@@ -87,9 +87,25 @@ void Metadata::endBatch() {
         endJoin();
     }
     for (uint32_t i = 0; i < joinsInBatch; ++i) {
-        batch[i]->performJoin();
+        JoinSumResult joinSums(batch[i]->performJoin());
+        uint32_t numSums = joinSums.getNumOfSums();
+        if (joinSums.getHasResults()) {
+            for (uint32_t j = 0; j < numSums; ++j) {
+                cout << joinSums.getSum(j) << " ";
+            }
+            cout << endl;
+        }
+        else if (joinSums.getNumOfSums() == 0) {
+            cout << "NULL" << endl;
+        }
+        else {
+            for (uint32_t j = 0; j < numSums; ++j) {
+                cout << "NULL ";
+            }
+            cout << endl;
+        }
+        resetBatch();
     }
-    resetBatch();
 }
 
 ostream& operator<<(ostream& os, const Metadata& toPrint) {

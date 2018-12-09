@@ -105,36 +105,40 @@ void Join::addTableRelationship(uint32_t tableA,
     if (joinRelationNum >= arraySize) {
         throw runtime_error("Reached limit, can't add more relations");
     }
-    if (tableA >= tableLoader.getTables()) {
+    if (tableA >= tableNum) {
         throw runtime_error("addTableRelationship: unknown table [tableA="
                             + to_string(tableA)
-                            + ", tableLoader.tables="
-                            + to_string(tableLoader.getTables())
+                            + ", tableNum="
+                            + to_string(tableNum)
                             + "]");
     }
-    if (tableB >= tableLoader.getTables()) {
+    if (tableB >= tableNum) {
         throw runtime_error("addTableRelationship: unknown table [tableB="
                             + to_string(tableB)
-                            + ", tableLoader.tables="
-                            + to_string(tableLoader.getTables())
+                            + ", tableNum="
+                            + to_string(tableNum)
                             + "]");
     }
-    if (columnA >= tableLoader.getTable(tableA).getCols()) {
+    if (columnA >= tableLoader.getTable(tables[tableA]).getCols()) {
         throw runtime_error("addTableRelationship: unknown column [tableA="
                             + to_string(tableA)
+                            + ", loadedTableA="
+                            + to_string(tables[tableA])
                             + ", columnA="
                             + to_string(columnA)
-                            + ", tableLoader.tables[tableA].cols="
-                            + to_string(tableLoader.getTable(tableA).getCols())
+                            + ", tableLoader.getTable(tables[tableA]).getCols()="
+                            + to_string(tableLoader.getTable(tables[tableA]).getCols())
                             + "]");
     }
-    if (columnB >= tableLoader.getTables()) {
+    if (columnB >= tableLoader.getTable(tables[tableB]).getCols()) {
         throw runtime_error("addTableRelationship: unknown column [tableB="
                             + to_string(tableB)
+                            + ", loadedTableB="
+                            + to_string(tables[tableB])
                             + ", columnB="
                             + to_string(columnB)
-                            + ", tableLoader.tables[tableB].cols="
-                            + to_string(tableLoader.getTable(tableB).getCols())
+                            + ", tableLoader.getTable(tables[tableB]).getCols()="
+                            + to_string(tableLoader.getTable(tables[tableB]).getCols())
                             + "]");
     }
     joinRelations[joinRelationNum++] = new JoinRelation(tableA,
@@ -152,20 +156,22 @@ void Join::addTableFilter(uint32_t table,
     if (filterNum >= arraySize) {
         throw runtime_error("Reached limit, can't add more filters");
     }
-    if (table >= tableLoader.getTables()) {
+    if (table >= tableNum) {
         throw runtime_error("addTableRelationship: unknown table [table="
                             + to_string(table)
-                            + ", tableLoader.tables="
-                            + to_string(tableLoader.getTables())
+                            + ", tableNum="
+                            + to_string(tableNum)
                             + "]");
     }
-    if (column >= tableLoader.getTable(table).getCols()) {
+    if (column >= tableLoader.getTable(tables[table]).getCols()) {
         throw runtime_error("addTableRelationship: unknown column [table="
                             + to_string(table)
+                            + ", loadedTable="
+                            + to_string(tables[table])
                             + ", column="
                             + to_string(column)
-                            + ", tableLoader.tables[table].cols="
-                            + to_string(tableLoader.getTable(table).getCols())
+                            + ", tableLoader.getTable(tables[table]).getCols()="
+                            + to_string(tableLoader.getTable(tables[table]).getCols())
                             + "]");
     }
     switch (type) {
@@ -190,20 +196,22 @@ void Join::addSumColumn(uint32_t table, size_t column) {
     if (sumColumnNum >= arraySize) {
         throw runtime_error("Reached limit, can't add more filters");
     }
-    if (table >= tableLoader.getTables()) {
+    if (table >= tableNum) {
         throw runtime_error("addTableRelationship: unknown table [table="
                             + to_string(table)
-                            + ", tableLoader.tables="
-                            + to_string(tableLoader.getTables())
+                            + ", tableNum="
+                            + to_string(tableNum)
                             + "]");
     }
-    if (column >= tableLoader.getTable(table).getCols()) {
+    if (column >= tableLoader.getTable(tables[table]).getCols()) {
         throw runtime_error("addTableRelationship: unknown column [table="
                             + to_string(table)
+                            + ", loadedTable="
+                            + to_string(tables[table])
                             + ", column="
                             + to_string(column)
-                            + ", tableLoader.tables[table].cols="
-                            + to_string(tableLoader.getTable(table).getCols())
+                            + ", tableLoader.getTable(tables[table]).getCols()="
+                            + to_string(tableLoader.getTable(tables[table]).getCols())
                             + "]");
     }
     sumColumns[sumColumnNum++] = new TableColumn(table, column);
@@ -420,7 +428,7 @@ void Join::fillSums(JoinSumResult& retVal) const {
 ResultContainer Join::radixHashJoin(const Relation& relR,
                                     const Relation& relS) const {
     ConsoleOutput consoleOutput("RadixHashJoin");
-    consoleOutput.errorOutput() << "JOIN EXECUTION STARTED" << endl;
+    //consoleOutput.errorOutput() << "JOIN EXECUTION STARTED" << endl;
 
     HashTable rHash(relR, buckets, hashFunc);
     HashTable sHash(relS, buckets, hashFunc);
@@ -450,7 +458,7 @@ ResultContainer Join::radixHashJoin(const Relation& relR,
         rChain.join(sHash, i, retResult);
     }
 
-    consoleOutput.errorOutput() << "JOIN EXECUTION ENDED" << endl;
+    //consoleOutput.errorOutput() << "JOIN EXECUTION ENDED" << endl;
     return retResult;
 }
 
