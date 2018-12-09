@@ -272,6 +272,8 @@ JoinSumResult Join::performJoin() {
         fillSumTables(sumCols, sumTable);
 
         fillSumsFromRelation(retVal, rel, sumCols, sumTable);
+
+        return retVal;
     }
     //Determines which result holds the rows for table. Initialized to nullptr when a table has not been joined.
     bool isRelationProcessed[joinRelationNum] { /* init to false */};
@@ -566,7 +568,9 @@ const JoinRelation* Join::findSmallestRelation(const bool* const isRelationProce
 Relation Join::loadRelation(const uint32_t tableReference,
                             const uint32_t colsToProcessNum,
                             const size_t* const colsToProcess) const {
-    const ResultContainer* resultContainerLoaded = resultContainers[tableReference];
+    const ResultContainer* resultContainerLoaded =
+            (resultContainers == nullptr) ? (nullptr) :
+                                            (resultContainers[tableReference]);
     const Table& joinTableLoaded = tableLoader.getTable(tables[tableReference]);
     const uint64_t* tableCols[colsToProcessNum];
     for (uint32_t i = 0; i < colsToProcessNum; ++i) {
