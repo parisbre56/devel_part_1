@@ -106,7 +106,6 @@ void parseSums(string::iterator& strIter,
                Metadata& metadata,
                string& input);
 
-
 //TODO result size is related to input size
 
 int main(int argc, char* argv[]) {
@@ -543,6 +542,7 @@ void addTableIfNecessary(ConsoleOutput& consoleOutput,
                             + ", input="
                             + input
                             + "]");
+        break;
     }
 }
 
@@ -601,6 +601,7 @@ void addRelationOrFilter(ConsoleOutput& consoleOutput,
     switch (parseState) {
     case START:
         //Do nothing
+        break;
     case TABLE_TWO:
         metadata.addTableFilter(tableNum, tableCol, currNum, condition);
         break;
@@ -698,6 +699,7 @@ void addSumColumnIfNecessary(const ConsoleOutput& consoleOutput,
     switch (parseState) {
     case START:
         //Do nothing
+        break;
     case TABLE_COL:
         metadata.addSumColumn(tableNum, currNum);
         break;
@@ -711,6 +713,7 @@ void addSumColumnIfNecessary(const ConsoleOutput& consoleOutput,
                             + ", input="
                             + input
                             + "]");
+        break;
     }
     currNum = 0;
     parseState = ParseState::START;
