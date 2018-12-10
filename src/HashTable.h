@@ -15,12 +15,13 @@ class HashTable;
 
 #include "ConsoleOutput.h"
 #include "Relation.h"
+#include "HashFunction.h"
 
 class HashTable {
 protected:
     const uint32_t buckets;
     const uint64_t numTuples;
-    uint32_t (* const hashFunction)(uint32_t, uint64_t);
+    HashFunction& hashFunction;
     uint64_t * const histogram;
     uint64_t * const pSum;
     const uint32_t sizeTableRows;
@@ -39,8 +40,7 @@ public:
      * The console output is optional. If not null, it is used to write debug
      * and error info. **/
     HashTable(const Relation& relation,
-              uint32_t buckets,
-              uint32_t (* const hashFunction)(uint32_t, uint64_t));
+              HashFunction& hashFunction);
 
     HashTable(const HashTable& toCopy) = delete;
     HashTable& operator=(const HashTable& toCopy) = delete;

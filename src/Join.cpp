@@ -15,17 +15,10 @@
 #include "HashTable.h"
 #include "BucketAndChain.h"
 #include "FilterSameTable.h"
+#include "HashFunctionBitmask.h"
+#include "HashFunctionModulo.h"
 
 using namespace std;
-
-//TODO dynamically choose
-#define HASH_BITS 3
-#define SUB_BUCKETS 3
-const uint32_t buckets = 1 << HASH_BITS; //2^n
-const uint32_t hashMask = (1 << HASH_BITS) - 1;
-
-uint32_t hashFunc(uint32_t buckets, uint64_t toHash);
-uint32_t hashFuncChain(uint32_t buckets, uint64_t toHash);
 
 Join::Join(const TableLoader& tableLoader, uint32_t arraySize) :
         tableLoader(tableLoader),
@@ -469,25 +462,73 @@ void Join::fillSumsFromRelation(JoinSumResult& retVal,
     }
 }
 
+unsigned char Join::getBitmaskSize(const uint64_t rows) const {
+    if (rows < 100) {
+        return 1;
+    }
+    if (rows < 1000) {
+        return 2;
+    }
+    if (rows < 10000) {
+        return 3;
+    }
+    if (rows < 100000) {
+        return 4;
+    }
+    if (rows < 1000000) {
+        return 5;
+    }
+    if (rows < 3000000) {
+        return 6;
+    }
+    if (rows < 5000000) {
+        return 7;
+    }
+    if (rows < 7000000) {
+        return 8;
+    }
+    if (rows < 10000000) {
+        return 9;
+    }
+    if (rows < 40000000) {
+        return 10;
+    }
+    if (rows < 70000000) {
+        return 11;
+    }
+    if (rows < 100000000) {
+        return 12;
+    }
+    return 13;
+}
+
+uint32_t Join::getBucketAndChainBuckets(uint64_t tuplesInBucket) const {
+    return tuplesInBucket / 10;
+}
+
 /** relR is stored in key, relS is stored in value **/
 ResultContainer Join::radixHashJoin(const Relation& relR,
                                     const Relation& relS) const {
     ConsoleOutput consoleOutput("RadixHashJoin");
     //consoleOutput.errorOutput() << "JOIN EXECUTION STARTED" << endl;
 
-    HashTable rHash(relR, buckets, hashFunc);
-    HashTable sHash(relS, buckets, hashFunc);
+    HashFunctionBitmask bitmask(getBitmaskSize(relR.getNumTuples()));
+
+    HashTable rHash(relR, bitmask);
+    HashTable sHash(relS, bitmask);
     CO_IFDEBUG(consoleOutput, "Hashes generated");
     CO_IFDEBUG(consoleOutput, "rHash=" << rHash);
     CO_IFDEBUG(consoleOutput, "sHash=" << sHash);
 
-    ResultContainer retResult(1000 /*TODO*/, relR.getSizeTableRows(), 0);
+    ResultContainer retResult(relR.getNumTuples() * relS.getNumTuples(),
+                              relR.getSizeTableRows(),
+                              0);
     for (uint32_t i = 0; i < tableNum; ++i) {
         if (relR.getUsedRow(i) || relS.getUsedRow(i)) {
             retResult.setUsedRow(i);
         }
     }
-
+    uint32_t buckets = rHash.getBuckets();
     for (uint32_t i = 0; i < buckets; ++i) {
         CO_IFDEBUG(consoleOutput, "Processing bucket " << i);
 
@@ -498,22 +539,14 @@ ResultContainer Join::radixHashJoin(const Relation& relR,
             continue;
         }
 
-        BucketAndChain rChain(rHash, i, SUB_BUCKETS, hashFuncChain);
+        HashFunctionModulo modulo(getBucketAndChainBuckets(rHash.getTuplesInBucket(i)));
+        BucketAndChain rChain(rHash, i, modulo);
         CO_IFDEBUG(consoleOutput, "Created subHashTable " << rChain);
         rChain.join(sHash, i, retResult);
     }
 
     //consoleOutput.errorOutput() << "JOIN EXECUTION ENDED" << endl;
     return retResult;
-}
-
-uint32_t hashFunc(uint32_t buckets, uint64_t toHash) {
-    //We ignore buckets, we don't really need it
-    return hashMask & toHash;
-}
-
-uint32_t hashFuncChain(uint32_t buckets, uint64_t toHash) {
-    return toHash % buckets;
 }
 
 const JoinRelation* Join::findSmallestRelation(const bool* const isRelationProcessed,

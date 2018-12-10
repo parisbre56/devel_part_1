@@ -16,7 +16,7 @@
 
 using namespace std;
 
-ResultContainer::ResultContainer(uint64_t blockSize,
+ResultContainer::ResultContainer(uint64_t maxExpectedResults,
                                  uint32_t sizeTableRows,
                                  size_t sizePayloads,
                                  bool* usedRows) :
@@ -27,7 +27,19 @@ ResultContainer::ResultContainer(uint64_t blockSize,
                 usedRows == nullptr ? new bool[sizeTableRows] { /*init to false*/} :
                                       usedRows),
         manageUsedRows(usedRows == nullptr) {
-    start = new Result(blockSize, sizeTableRows, sizePayloads, this->usedRows);
+    const size_t sizeOfTuple = sizeof(Tuple)
+                               + sizeof(Tuple*)
+                               + sizeTableRows * sizeof(uint64_t)
+                               + sizePayloads * sizeof(uint64_t);
+    const uint64_t blockSize = (RESULTCONTAINER_H_L2_CACHE_SIZE
+                                - sizeof(Result)
+                                - sizeof(Relation))
+                               / (sizeOfTuple);
+    start = new Result((maxExpectedResults < blockSize) ? (maxExpectedResults) :
+                                                          (blockSize),
+                       sizeTableRows,
+                       sizePayloads,
+                       this->usedRows);
     end = start;
 }
 
@@ -163,7 +175,7 @@ void ResultContainer::setUsedRow(uint32_t row) {
 }
 
 Relation ResultContainer::loadToRelation(const uint32_t payloadTable,
-                                     const size_t sizePayloads,
+                                         const size_t sizePayloads,
                                          const uint64_t * const * const payloadCols) const {
     Relation rel(resultCount, sizeTableRows, sizePayloads, usedRows);
     const Result* currResult = start;

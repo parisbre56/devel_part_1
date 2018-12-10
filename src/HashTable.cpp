@@ -15,13 +15,12 @@
 using namespace std;
 
 HashTable::HashTable(const Relation& relation,
-                     uint32_t buckets,
-                     uint32_t (* const hashFunction)(uint32_t, uint64_t)) :
-        buckets(buckets),
+                     HashFunction& hashFunction) :
+        buckets(hashFunction.getBuckets()),
         numTuples(relation.getNumTuples()),
         hashFunction(hashFunction),
-        histogram(new uint64_t[buckets] { }),
-        pSum(new uint64_t[buckets] { }),
+        histogram(new uint64_t[hashFunction.getBuckets()] { }),
+        pSum(new uint64_t[hashFunction.getBuckets()] { }),
         sizeTableRows(relation.getSizeTableRows()),
         sizePayloads(relation.getSizePayloads()),
         usedRows(relation.getUsedRows()),
@@ -47,7 +46,7 @@ HashTable::HashTable(const Relation& relation,
         const Tuple& toCheck = relation.getTuple(i);
         CO_IFDEBUG(consoleOutput, i << ":" << toCheck);
 
-        uint32_t currHash = this->hashFunction(buckets, toCheck.getPayload(0));
+        uint32_t currHash = hashFunction.applyHash(toCheck.getPayload(0));
         CO_IFDEBUG(consoleOutput, "Assigned to bucket " << currHash);
         histogram[currHash]++;
     }
@@ -80,7 +79,7 @@ HashTable::HashTable(const Relation& relation,
         const Tuple& toCheck = relation.getTuple(i);
         CO_IFDEBUG(consoleOutput, i << ":" << toCheck);
 
-        uint32_t currHash = this->hashFunction(buckets, toCheck.getPayload(0));
+        uint32_t currHash = hashFunction.applyHash(toCheck.getPayload(0));
         CO_IFDEBUG(consoleOutput,
                    "Copying to bucket " << currHash << " position " << histogram[currHash]);
         orderedTuples[pSum[currHash] + histogram[currHash]] = &toCheck;
@@ -161,7 +160,7 @@ std::ostream& operator<<(std::ostream& os, const HashTable& toPrint) {
        << ", numTuples="
        << toPrint.numTuples
        << ", hashFunction="
-       << ((void*) toPrint.hashFunction)
+       << toPrint.hashFunction
        << ", sizeTableRows="
        << toPrint.sizeTableRows
        << ", sizePayloads="

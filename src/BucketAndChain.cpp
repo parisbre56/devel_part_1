@@ -13,14 +13,12 @@ using namespace std;
 
 BucketAndChain::BucketAndChain(const HashTable& hashTable,
                                const uint32_t hashBucket,
-                               const uint32_t subBuckets,
-                               uint32_t (* const hashFunction)(uint32_t,
-                                                               uint64_t)) :
+                               HashFunction& hashFunction) :
         referenceTable(hashTable.getBucket(hashBucket)),
         tuplesInBucket(hashTable.getTuplesInBucket(hashBucket)),
-        subBuckets(subBuckets),
+        subBuckets(hashFunction.getBuckets()),
         hashFunction(hashFunction),
-        bucket(new uint64_t[subBuckets]),
+        bucket(new uint64_t[hashFunction.getBuckets()]),
         chain(new uint64_t[hashTable.getTuplesInBucket(hashBucket)] { }),
         sizeTableRows(hashTable.getSizeTableRows()),
         sizePayloads(hashTable.getSizePayloads()),
@@ -42,8 +40,7 @@ BucketAndChain::BucketAndChain(const HashTable& hashTable,
         const Tuple& currTuple = *(referenceTable[i]);
         CO_IFDEBUG(consoleOutput, i << ":" << currTuple);
 
-        uint32_t currHash = this->hashFunction(this->subBuckets,
-                                               currTuple.getPayload(0));
+        uint32_t currHash = hashFunction.applyHash(currTuple.getPayload(0));
         CO_IFDEBUG(consoleOutput, "Assigned to subBucket " << currHash);
 
         //If this is the first time the bucket is used, then the end of the chain will
@@ -74,8 +71,7 @@ void BucketAndChain::join(HashTable& hashToJoin,
         const Tuple& currTuple = *(tuplesToJoin[i]);
         CO_IFDEBUG(consoleOutput, "o" << i << ":" << currTuple);
 
-        uint32_t currHash = this->hashFunction(subBuckets,
-                                               currTuple.getPayload(0));
+        uint32_t currHash = hashFunction.applyHash(currTuple.getPayload(0));
         CO_IFDEBUG(consoleOutput, "Searching subBucket " << currHash);
 
         uint64_t searchPoint = bucket[currHash];
@@ -117,7 +113,7 @@ std::ostream& operator<<(std::ostream& os, const BucketAndChain& toPrint) {
        << ", subBuckets="
        << toPrint.subBuckets
        << ", hashFunction="
-       << ((void*) toPrint.hashFunction)
+       << toPrint.hashFunction
        << ", sizeTableRows="
        << toPrint.sizeTableRows
        << ", sizePayloads="

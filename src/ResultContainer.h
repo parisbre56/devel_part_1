@@ -16,6 +16,8 @@ class ResultContainer;
 #include "Result.h"
 #include "Relation.h"
 
+#define RESULTCONTAINER_H_L2_CACHE_SIZE 262144
+
 class ResultContainer {
 protected:
     uint32_t sizeTableRows;

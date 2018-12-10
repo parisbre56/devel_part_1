@@ -14,6 +14,7 @@ class BucketAndChain;
 
 #include "HashTable.h"
 #include "ResultContainer.h"
+#include "HashFunction.h"
 
 class BucketAndChain {
 protected:
@@ -21,7 +22,7 @@ protected:
     /** tuplesInBucket's value is used to show the end of a chain or a bucket with no values. **/
     const uint64_t tuplesInBucket;
     const uint32_t subBuckets;
-    uint32_t (* const hashFunction)(uint32_t, uint64_t);
+    HashFunction& hashFunction;
     uint64_t * const bucket;
     uint64_t * const chain;
     const uint32_t sizeTableRows;
@@ -40,8 +41,7 @@ public:
      * be deleted before the BucketAndChain is. **/
     BucketAndChain(const HashTable& hashTable,
                    const uint32_t hashBucket,
-                   const uint32_t subBuckets,
-                   uint32_t (* const hashFunction)(uint32_t, uint64_t));
+                   HashFunction& hashFunction);
     virtual ~BucketAndChain();
 
     void join(HashTable& hashToJoin,

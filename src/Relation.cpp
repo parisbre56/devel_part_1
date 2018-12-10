@@ -82,7 +82,9 @@ Relation::~Relation() {
 }
 
 ResultContainer Relation::operator*(const Relation& cartesianProduct) const {
-    ResultContainer retResult(10000/*TODO*/, sizeTableRows, 0);
+    ResultContainer retResult(numTuples * cartesianProduct.numTuples,
+                              sizeTableRows,
+                              0);
     for (uint64_t i = 0; i < numTuples; ++i) {
         for (uint64_t j = 0; j < cartesianProduct.numTuples; ++j) {
             const bool* const usedRows = retResult.getUsedRows();

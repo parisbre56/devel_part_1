@@ -15,10 +15,6 @@ class Result;
 #include "Tuple.h"
 #include "Relation.h"
 
-//TODO dynamically compute?
-//1MB divided by size of Tuple gives us the number of Tuple we can store
-//#define RESULT_H_BLOCK_SIZE (1024*1024)/sizeof(Tuple) //TODO this is wrong
-
 class Result {
 protected:
     uint32_t sizeTableRows;

@@ -106,8 +106,6 @@ void parseSums(string::iterator& strIter,
                Metadata& metadata,
                string& input);
 
-//TODO result size is related to input size
-
 int main(int argc, char* argv[]) {
     ConsoleOutput::debugEnabledDefault = true;
     ConsoleOutput consoleOutput("Main");
