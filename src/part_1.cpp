@@ -34,16 +34,13 @@ enum ParseState {
     TABLE_TWO_COL = 7
 };
 
-ResultContainer radixHashJoin(Relation& relR, Relation& relS);
-uint32_t hashFunc(uint32_t buckets, uint64_t toHash);
-uint32_t hashFuncChain(uint32_t buckets, uint64_t toHash);
 void removeTrailingNewlines(string& toProcess);
 bool processInputFile(string& input, TableLoader& tableLoader);
 bool processInputJoin(string& input, Metadata& metadata);
 void addTableIfNecessary(ConsoleOutput& consoleOutput,
                          Metadata& metadata,
                          uint32_t& tableNum,
-                         ParseState& digits,
+                         ParseState& parseState,
                          char current,
                          string::iterator strIter,
                          string input);

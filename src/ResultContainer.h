@@ -57,9 +57,9 @@ public:
      * table the values will be loaded.
      * {payloadCols} is an array of size {sizePayloads} that has
      * the columns of the table from which the values will be loaded. **/
-    Relation loadToRelation(const uint32_t payloadTable,
-                            const size_t sizePayloads,
-                            const uint64_t * const * const payloadCols) const;
+    Relation loadToRelation(const size_t sizePayloads,
+                            const uint64_t * const * const payloadCols,
+                            const uint32_t * const payloadTables) const;
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const ResultContainer& toPrint);

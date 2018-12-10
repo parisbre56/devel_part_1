@@ -283,24 +283,32 @@ JoinSumResult Join::performJoin() {
         }
         CO_IFDEBUG(consoleOutput, "Smallest relation " << *smallestRelation);
 
-        size_t colsToProcessLeft[sameTableRelations];
-        size_t colsToProcessRight[sameTableRelations];
+        TableColumn colsToProcessLeft[sameTableRelations];
+        TableColumn colsToProcessRight[sameTableRelations];
         sameTableRelations = 0;
         for (uint32_t relationIndex = 0; relationIndex < joinRelationNum;
                 ++relationIndex) {
             const JoinRelation& currRelation = *(joinRelations[relationIndex]);
-            if (currRelation.sameTableAs(*smallestRelation)) {
+            unsigned char cmp = currRelation.sameJoinAs(*smallestRelation,
+                                                        resultContainers);
+            if (cmp) {
                 CO_IFDEBUG(consoleOutput,
                            "Will process relation " << currRelation);
                 isRelationProcessed[relationIndex] = true;
-                if (currRelation.getLeftNum()
-                    == smallestRelation->getLeftNum()) {
-                    colsToProcessLeft[sameTableRelations] = currRelation.getLeftCol();
-                    colsToProcessRight[sameTableRelations] = currRelation.getRightCol();
+                if (cmp == 1) {
+                    colsToProcessLeft[sameTableRelations].setTableNum(currRelation.getLeftNum());
+                    colsToProcessLeft[sameTableRelations].setTableCol(currRelation.getLeftCol());
+                    colsToProcessRight[sameTableRelations].setTableNum(currRelation.getRightNum());
+                    colsToProcessRight[sameTableRelations].setTableCol(currRelation.getRightCol());
+                }
+                else if (cmp == 2) {
+                    colsToProcessLeft[sameTableRelations].setTableNum(currRelation.getRightNum());
+                    colsToProcessLeft[sameTableRelations].setTableCol(currRelation.getRightCol());
+                    colsToProcessRight[sameTableRelations].setTableNum(currRelation.getLeftNum());
+                    colsToProcessRight[sameTableRelations].setTableCol(currRelation.getLeftCol());
                 }
                 else {
-                    colsToProcessLeft[sameTableRelations] = currRelation.getRightCol();
-                    colsToProcessRight[sameTableRelations] = currRelation.getLeftCol();
+                    throw runtime_error("Unknown cmp while searching for matching relations");
                 }
                 sameTableRelations++;
             }
@@ -591,7 +599,7 @@ const JoinRelation* Join::findSmallestRelation(const bool* const isRelationProce
             sameTableRelations = 0;
         }
 
-        if (smallestRelation->sameTableAs(*currRel)) {
+        if (smallestRelation->sameJoinAs(*currRel, resultContainers)) {
             ++sameTableRelations;
         }
     }
@@ -600,14 +608,23 @@ const JoinRelation* Join::findSmallestRelation(const bool* const isRelationProce
 
 Relation Join::loadRelation(const uint32_t tableReference,
                             const uint32_t colsToProcessNum,
-                            const size_t* const colsToProcess) const {
+                            const TableColumn* const colsToProcess) const {
     const ResultContainer* resultContainerLoaded =
             (resultContainers == nullptr) ? (nullptr) :
                                             (resultContainers[tableReference]);
     const Table& joinTableLoaded = tableLoader.getTable(tables[tableReference]);
     const uint64_t* tableCols[colsToProcessNum];
+    uint32_t payloadTables[colsToProcessNum];
     for (uint32_t i = 0; i < colsToProcessNum; ++i) {
-        tableCols[i] = joinTableLoaded.getCol(colsToProcess[i]);
+        const TableColumn& currTableColumn = colsToProcess[i];
+        if (resultContainerLoaded == nullptr
+            || currTableColumn.getTableNum() == tableReference) {
+            tableCols[i] = joinTableLoaded.getCol(currTableColumn.getTableCol());
+            payloadTables[i] = tableReference;
+        }
+        else {
+            tableCols[i] = tableLoader.getTable(tables[payloadTables[i] = currTableColumn.getTableNum()]).getCol(currTableColumn.getTableCol());
+        }
     }
     //If this table has not been previously processed
     if (resultContainerLoaded == nullptr) {
@@ -658,9 +675,9 @@ Relation Join::loadRelation(const uint32_t tableReference,
         return retVal;
     }
     //Else, if resultContainerLoaded is not null (i.e. table was part of a previously joined relation)
-    return resultContainerLoaded->loadToRelation(tableReference,
-                                                 colsToProcessNum,
-                                                 tableCols);
+    return resultContainerLoaded->loadToRelation(colsToProcessNum,
+                                                 tableCols,
+                                                 payloadTables);
 }
 
 ostream& operator<<(ostream& os, const Join& toPrint) {

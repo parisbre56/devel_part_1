@@ -18,7 +18,7 @@ protected:
     bool hasResults;
 public:
     JoinSumResult() = delete;
-    JoinSumResult(uint32_t numOfSums);
+    explicit JoinSumResult(uint32_t numOfSums);
     JoinSumResult(const JoinSumResult& toCopy) = delete;
     JoinSumResult(JoinSumResult&& toMove);
     JoinSumResult& operator=(const JoinSumResult& toCopy) = delete;

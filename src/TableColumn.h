@@ -15,7 +15,7 @@ class TableColumn {
     uint32_t tableNum;
     size_t tableCol;
 public:
-    TableColumn() = delete;
+    TableColumn();
     TableColumn(uint32_t tableNum, size_t tableCol);
     TableColumn(const TableColumn& toCopy);
     TableColumn(TableColumn&& toMove) = delete;

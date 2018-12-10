@@ -9,6 +9,11 @@
 
 using namespace std;
 
+TableColumn::TableColumn() :
+        tableNum(0), tableCol(0) {
+
+}
+
 TableColumn::TableColumn(uint32_t tableNum, size_t tableCol) :
         tableNum(tableNum), tableCol(tableCol) {
 

@@ -21,7 +21,7 @@ protected:
     virtual void write(std::ostream& os) const;
 public:
     HashFunctionModulo() = delete;
-    HashFunctionModulo(uint32_t buckets);
+    explicit HashFunctionModulo(uint32_t buckets);
     HashFunctionModulo(const HashFunctionModulo& toCopy) = delete;
     HashFunctionModulo(HashFunctionModulo&& toMove) = delete;
     HashFunctionModulo& operator=(const HashFunctionModulo& toCopy) = delete;

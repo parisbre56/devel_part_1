@@ -26,7 +26,7 @@ protected:
 public:
     static bool debugEnabledDefault;
 
-    ConsoleOutput(std::string label);
+    explicit ConsoleOutput(std::string label);
     ConsoleOutput(std::string label, bool debugEnabled);
     virtual ~ConsoleOutput();
 

@@ -40,7 +40,7 @@ protected:
                                              uint32_t& sameTableRelations) const;
     Relation loadRelation(const uint32_t tableReference,
                           const uint32_t colsToProcessNum,
-                          const size_t* const colsToProcess) const;
+                          const TableColumn* const colsToProcess) const;
     ResultContainer radixHashJoin(const Relation& relR,
                                   const Relation& relS) const;
     void storeResut(ResultContainer* newResult);

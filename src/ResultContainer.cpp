@@ -72,6 +72,9 @@ ResultContainer::ResultContainer(ResultContainer&& toMove) :
 }
 
 ResultContainer& ResultContainer::operator=(const ResultContainer& toCopy) {
+    if (this == &toCopy) {
+        return *this;
+    }
     if (start != nullptr) {
         delete start;
     }
@@ -95,6 +98,9 @@ ResultContainer& ResultContainer::operator=(const ResultContainer& toCopy) {
 }
 
 ResultContainer& ResultContainer::operator=(ResultContainer&& toMove) {
+    if (this == &toMove) {
+        return *this;
+    }
     if (start != nullptr) {
         delete start;
     }
@@ -174,9 +180,9 @@ void ResultContainer::setUsedRow(uint32_t row) {
     usedRows[row] = true;
 }
 
-Relation ResultContainer::loadToRelation(const uint32_t payloadTable,
-                                         const size_t sizePayloads,
-                                         const uint64_t * const * const payloadCols) const {
+Relation ResultContainer::loadToRelation(const size_t sizePayloads,
+                                         const uint64_t * const * const payloadCols,
+                                         const uint32_t * const payloadTables) const {
     Relation rel(resultCount, sizeTableRows, sizePayloads, usedRows);
     const Result* currResult = start;
     while (currResult != nullptr) {
@@ -188,7 +194,7 @@ Relation ResultContainer::loadToRelation(const uint32_t payloadTable,
             const uint64_t * const * currCol = payloadCols;
             for (size_t j = 0; j < sizePayloads; ++j, ++currCol) {
                 toAdd.setPayload(j,
-                                 (*payloadCols)[toAdd.getTableRow(payloadTable)]);
+                                 (*payloadCols)[toAdd.getTableRow(payloadTables[j])]);
             }
             rel.addTuple(move(toAdd));
         }

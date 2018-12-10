@@ -23,7 +23,7 @@ protected:
     virtual void write(std::ostream& os) const;
 public:
     HashFunctionBitmask() = delete;
-    HashFunctionBitmask(unsigned char bitmaskSize);
+    explicit HashFunctionBitmask(unsigned char bitmaskSize);
     HashFunctionBitmask(const HashFunctionBitmask& toCopy) = delete;
     HashFunctionBitmask(HashFunctionBitmask&& toMove) = delete;
     HashFunctionBitmask& operator=(const HashFunctionBitmask& toCopy) = delete;

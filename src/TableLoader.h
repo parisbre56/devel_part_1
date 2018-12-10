@@ -20,7 +20,7 @@ protected:
     const Table ** tableArray;
 public:
     TableLoader() = delete;
-    TableLoader(uint32_t arraySize);
+    explicit TableLoader(uint32_t arraySize);
     TableLoader(const TableLoader& toCopy) = delete;
     TableLoader(TableLoader&& toMove);
     TableLoader& operator=(const TableLoader& toCopy) = delete;

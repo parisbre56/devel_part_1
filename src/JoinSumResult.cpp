@@ -24,6 +24,9 @@ JoinSumResult::JoinSumResult(JoinSumResult&& toMove) {
     toMove.sums = nullptr;
 }
 JoinSumResult& JoinSumResult::operator=(JoinSumResult&& toMove) {
+    if (this == &toMove) {
+        return *this;
+    }
     if (sums != nullptr) {
         delete[] sums;
     }

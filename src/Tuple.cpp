@@ -91,6 +91,9 @@ Tuple::Tuple(Tuple&& toMove, size_t sizePayloads) :
 }
 
 Tuple& Tuple::operator=(const Tuple& toCopy) {
+    if (this == &toCopy) {
+        return *this;
+    }
     if (sizeTableRows < toCopy.sizeTableRows) {
         delete[] tableRows;
         tableRows = new uint64_t[toCopy.sizeTableRows];
@@ -115,6 +118,9 @@ Tuple& Tuple::operator=(const Tuple& toCopy) {
 }
 
 Tuple& Tuple::operator=(Tuple&& toMove) {
+    if (this == &toMove) {
+        return *this;
+    }
     delete[] tableRows;
     if (payloads != nullptr) {
         delete[] payloads;

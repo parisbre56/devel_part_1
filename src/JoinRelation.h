@@ -13,6 +13,8 @@ class JoinRelation;
 
 #include <iostream>
 
+#include "ResultContainer.h"
+
 class JoinRelation {
     const uint32_t leftNum;
     const size_t leftCol;
@@ -28,7 +30,13 @@ public:
     JoinRelation& operator=(const JoinRelation& toCopy) = delete;
     virtual ~JoinRelation();
 
-    bool sameTableAs(const JoinRelation& toCompare) const;
+    /** Return 0 for false, 1 for right order, 2 for inverse order (right
+     * matches cLeft, left matches cRight) **/
+    unsigned char sameTableAs(const JoinRelation& toCompare) const;
+    /** Similar to sameTableAs but also checks join results for each table to
+     * determine if the two relations use the same join results. **/
+    unsigned char sameJoinAs(const JoinRelation& toCompare,
+                             const ResultContainer* const * const resultContainers) const;
 
     uint32_t getLeftNum() const;
     size_t getLeftCol() const;
