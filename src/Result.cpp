@@ -139,7 +139,7 @@ std::ostream& operator<<(std::ostream& os, const Result& toPrint) {
         }
         os << toPrint.usedRows[i];
     }
-    os << "], relation=" << toPrint.relation << ", next=";
+    os << "], relation=" << *(toPrint.relation) << ", next=";
     if (toPrint.next == nullptr) {
         os << "null";
     }

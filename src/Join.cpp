@@ -293,7 +293,7 @@ JoinSumResult Join::performJoin() {
                                                         resultContainers);
             if (cmp) {
                 CO_IFDEBUG(consoleOutput,
-                           "Will process relation " << currRelation);
+                           "Will process relation [cmp=" << to_string(cmp) << ", currRelation=" << currRelation << "]");
                 isRelationProcessed[relationIndex] = true;
                 if (cmp == 1) {
                     colsToProcessLeft[sameTableRelations].setTableNum(currRelation.getLeftNum());
@@ -333,6 +333,8 @@ JoinSumResult Join::performJoin() {
                                                                              relL) :
                                                                radixHashJoin(relL,
                                                                              relR));
+        CO_IFDEBUG(consoleOutput, "Join result: "<< *newResult);
+
         //Delete old results and store new results
         storeResut(newResult);
 
@@ -609,6 +611,18 @@ const JoinRelation* Join::findSmallestRelation(const bool* const isRelationProce
 Relation Join::loadRelation(const uint32_t tableReference,
                             const uint32_t colsToProcessNum,
                             const TableColumn* const colsToProcess) const {
+    ConsoleOutput consoleOutput("Join::loadRelation");
+    CO_IFDEBUG(consoleOutput,
+               "Join::loadRelation [tableReference="<<tableReference<<", colsToProcessNum="<<colsToProcessNum<<", colsToProcess=[");
+    if (colsToProcess == nullptr) {
+        CO_IFDEBUG(consoleOutput, "null");
+    }
+    else {
+        for (uint32_t i = 0; i < colsToProcessNum; ++i) {
+            CO_IFDEBUG(consoleOutput, "\t" << colsToProcess[i]);
+        }
+    }
+    CO_IFDEBUG(consoleOutput, "]");
     const ResultContainer* resultContainerLoaded =
             (resultContainers == nullptr) ? (nullptr) :
                                             (resultContainers[tableReference]);
@@ -670,6 +684,7 @@ Relation Join::loadRelation(const uint32_t tableReference,
             for (size_t j = 0; j < colsToProcessNum; ++j) {
                 toAdd.setPayload(j, tableCols[j][currRowNum]);
             }
+            CO_IFDEBUG(consoleOutput, "Adding Tuple "<<toAdd);
             retVal.addTuple(move(toAdd));
         }
         return retVal;

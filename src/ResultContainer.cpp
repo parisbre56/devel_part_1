@@ -183,6 +183,18 @@ void ResultContainer::setUsedRow(uint32_t row) {
 Relation ResultContainer::loadToRelation(const size_t sizePayloads,
                                          const uint64_t * const * const payloadCols,
                                          const uint32_t * const payloadTables) const {
+    ConsoleOutput consoleOutput("ResultContainer::loadToRelation");
+    CO_IFDEBUG(consoleOutput,
+               "ResultContainer::loadToRelation [sizePayloads="<<sizePayloads<<", payloadTables=[");
+    if (payloadTables == nullptr) {
+        CO_IFDEBUG(consoleOutput, "null");
+    }
+    else {
+        for (size_t i = 0; i < sizePayloads; ++i) {
+            CO_IFDEBUG(consoleOutput, "\t" << payloadTables[i])
+        }
+    }
+    CO_IFDEBUG(consoleOutput, "]");
     Relation rel(resultCount, sizeTableRows, sizePayloads, usedRows);
     const Result* currResult = start;
     while (currResult != nullptr) {
@@ -196,6 +208,7 @@ Relation ResultContainer::loadToRelation(const size_t sizePayloads,
                 toAdd.setPayload(j,
                                  (*payloadCols)[toAdd.getTableRow(payloadTables[j])]);
             }
+            CO_IFDEBUG(consoleOutput, "Adding Tuple "<<toAdd);
             rel.addTuple(move(toAdd));
         }
         currResult = currResult->getNext();

@@ -90,6 +90,8 @@ void BucketAndChain::join(HashTable& hashToJoin,
                 }
             }
             if (matches) {
+                CO_IFDEBUG(consoleOutput,
+                           "Found matching Tuples [searchPointTuple="<<searchPointTuple<<", currTuple="<<currTuple<<"]");
                 Tuple joinRow(searchPointTuple,
                               usedRows,
                               currTuple,
