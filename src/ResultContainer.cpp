@@ -203,10 +203,9 @@ Relation ResultContainer::loadToRelation(const size_t sizePayloads,
         const Tuple * const * currTuple = currRelation.getTuples();
         for (uint32_t i = 0; i < numTuples; ++i, ++currTuple) {
             Tuple toAdd(**currTuple, sizePayloads);
-            const uint64_t * const * currCol = payloadCols;
-            for (size_t j = 0; j < sizePayloads; ++j, ++currCol) {
+            for (size_t j = 0; j < sizePayloads; ++j) {
                 toAdd.setPayload(j,
-                                 (*payloadCols)[toAdd.getTableRow(payloadTables[j])]);
+                                 payloadCols[j][toAdd.getTableRow(payloadTables[j])]);
             }
             CO_IFDEBUG(consoleOutput, "Adding Tuple "<<toAdd);
             rel.addTuple(move(toAdd));
@@ -242,7 +241,7 @@ std::ostream& operator<<(std::ostream& os, const ResultContainer& toPrint) {
         os << "null";
     }
     else {
-        os << toPrint.start;
+        os << *(toPrint.start);
     }
     os << ", end=";
     if (toPrint.end == nullptr) {
