@@ -502,7 +502,7 @@ unsigned char Join::getBitmaskSize(const uint64_t rows) const {
     return 13;
 }
 
-uint32_t Join::getBucketAndChainBuckets(uint64_t tuplesInBucket) const {
+uint32_t Join::getBucketAndChainBuckets(const uint64_t tuplesInBucket) const {
     return tuplesInBucket / 10;
 }
 

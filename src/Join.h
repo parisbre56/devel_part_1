@@ -51,8 +51,8 @@ protected:
                               const uint32_t * const sumTable) const;
     void fillSumTables(const uint64_t* * const sumCols,
                        uint32_t * const sumTable) const;
-    unsigned char getBitmaskSize(uint64_t rows) const;
-    uint32_t getBucketAndChainBuckets(uint64_t tuplesInBucket) const;
+    unsigned char getBitmaskSize(const uint64_t rows) const;
+    uint32_t getBucketAndChainBuckets(const uint64_t tuplesInBucket) const;
 
 public:
     Join() = delete;
