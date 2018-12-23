@@ -13,11 +13,14 @@ class TableLoader;
 
 #include <string>
 
+#include "MultipleColumnStats.h"
+
 class TableLoader {
 protected:
     const uint32_t arraySize;
     uint32_t tables;
     const Table ** tableArray;
+    const MultipleColumnStats ** tableStats;
 public:
     TableLoader() = delete;
     explicit TableLoader(uint32_t arraySize);

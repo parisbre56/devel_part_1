@@ -23,17 +23,22 @@ using namespace std;
 #include "ConsoleOutput.h"
 
 TableLoader::TableLoader(uint32_t arraySize) :
-        arraySize(arraySize), tables(0), tableArray(new const Table*[arraySize]) {
+        arraySize(arraySize),
+        tables(0),
+        tableArray(new const Table*[arraySize]),
+        tableStats(new const MultipleColumnStats*[arraySize]) {
 
 }
 
 TableLoader::TableLoader(TableLoader&& toMove) :
         arraySize(toMove.arraySize),
         tables(toMove.tables),
-        tableArray(toMove.tableArray) {
+        tableArray(toMove.tableArray),
+        tableStats(toMove.tableStats) {
     if (toMove.tableArray == nullptr)
         throw runtime_error("Table was already moved");
     toMove.tableArray = nullptr;
+    toMove.tableStats = nullptr;
 }
 
 TableLoader::~TableLoader() {
@@ -43,10 +48,16 @@ TableLoader::~TableLoader() {
         }
         delete[] tableArray;
     }
+    if (tableStats != nullptr) {
+        for (uint32_t i = 0; i < tables; ++i) {
+            delete tableStats[i];
+        }
+        delete[] tableStats;
+    }
 }
 
 const Table& TableLoader::loadTable(string filePath) {
-    ConsoleOutput consoleOutput("loadTable");
+    ConsoleOutput consoleOutput("TableLoader::loadTable");
     CO_IFDEBUG(consoleOutput, "Loading file " << filePath);
 
     //Open file
@@ -110,23 +121,25 @@ const Table& TableLoader::loadTable(string filePath) {
                             + ") "
                             + strerror(errno));
     }
-    CO_IFDEBUG(consoleOutput, "Finished loading table");
 
-    return this->addTable(rows, cols, col_row_table, false);
+    const Table& loadedTable = this->addTable(rows, cols, col_row_table, false);
+    CO_IFDEBUG(consoleOutput, "Finished loading table");
+    return loadedTable;
 }
 
 const Table& TableLoader::addTable(uint64_t rows,
                                    size_t cols,
                                    const uint64_t * col_row_table,
                                    bool ownsMemory) {
-    if (this->tables >= this->arraySize) {
+    ConsoleOutput consoleOutput("TableLoader::addTable");
+    if (tables >= arraySize) {
         throw runtime_error("Reached loader limit. Can't load more tables.");
     }
-    this->tableArray[this->tables] = new Table(rows,
-                                               cols,
-                                               col_row_table,
-                                               ownsMemory);
-    return *(this->tableArray[this->tables++]);
+    tableArray[tables] = new Table(rows, cols, col_row_table, ownsMemory);
+    tableStats[tables] = new MultipleColumnStats(*(tableArray[tables]));
+    CO_IFDEBUG(consoleOutput,
+               "Computed stats [tables="<<tables<<", tableStats["<<tables<<"]="<<*(tableStats[tables])<<"]");
+    return *(tableArray[tables++]);
 }
 
 const Table& TableLoader::getTable(uint32_t index) const {
