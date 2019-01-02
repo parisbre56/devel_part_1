@@ -15,6 +15,7 @@ class Filter;
 #include <iostream>
 
 #include "Table.h"
+#include "MultipleColumnStats.h"
 
 class Filter {
 protected:
@@ -33,6 +34,8 @@ public:
 
     /** True if value should be kept, false if value should be discarded **/
     virtual bool passesFilter(const Table& table, uint64_t rownum) const = 0;
+    /** Apply the filter to the given stats and produce new stats **/
+    virtual MultipleColumnStats applyFilter(const MultipleColumnStats& stat) const = 0;
     uint32_t getTable() const;
     size_t getCol() const;
 

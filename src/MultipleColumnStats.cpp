@@ -10,6 +10,8 @@
 #include <cstring>
 #include <cmath>
 
+#include <limits>
+
 using namespace std;
 
 void updateOtherRows(size_t col,
@@ -72,12 +74,55 @@ MultipleColumnStats::MultipleColumnStats(const MultipleColumnStats& toCopy) :
     memcpy(columnStats, toCopy.columnStats, sizeof(ColumnStat) * cols);
 }
 
+MultipleColumnStats::MultipleColumnStats(const MultipleColumnStats& toCopyLeft,
+                                         const MultipleColumnStats& toCopyRight) :
+        cols(toCopyLeft.cols + toCopyRight.cols),
+        columnStats(new ColumnStat[toCopyLeft.cols + toCopyRight.cols]) {
+    memcpy(columnStats,
+           toCopyLeft.columnStats,
+           sizeof(ColumnStat) * toCopyLeft.cols);
+    memcpy(columnStats + toCopyLeft.columnStats,
+           toCopyRight.columnStats,
+           sizeof(ColumnStat) * toCopyRight.cols);
+}
+
 MultipleColumnStats::MultipleColumnStats(MultipleColumnStats&& toMove) :
         cols(toMove.cols), columnStats(toMove.columnStats) {
     if (toMove.columnStats == nullptr) {
         throw runtime_error("stats have already been moved");
     }
     toMove.columnStats = nullptr;
+}
+
+MultipleColumnStats& MultipleColumnStats::operator=(const MultipleColumnStats& toCopy) {
+    if (toCopy.cols != cols) {
+        throw runtime_error("Cols did not match [cols="
+                            + to_string(cols)
+                            + ", toCopy.cols="
+                            + to_string(toCopy.cols)
+                            + "]");
+    }
+    memcpy(columnStats, toCopy.columnStats, cols * sizeof(ColumnStat));
+    return *this;
+}
+
+MultipleColumnStats& MultipleColumnStats::operator=(MultipleColumnStats&& toMove) {
+    if (toMove.cols != cols) {
+        throw runtime_error("Cols did not match [cols="
+                            + to_string(cols)
+                            + ", toCopy.cols="
+                            + to_string(toMove.cols)
+                            + "]");
+    }
+    if (toMove.columnStats == nullptr) {
+        throw runtime_error("stats have already been moved");
+    }
+    if (columnStats != nullptr) {
+        delete[] columnStats;
+    }
+    columnStats = toMove.columnStats;
+    toMove.columnStats = nullptr;
+    return *this;
 }
 
 MultipleColumnStats::~MultipleColumnStats() {
@@ -87,9 +132,9 @@ MultipleColumnStats::~MultipleColumnStats() {
 }
 
 void MultipleColumnStats::updateOtherRows(size_t col,
-                     const MultipleColumnStats& current,
-                                          MultipleColumnStats& retVal,
-                     ColumnStat& colStatNew,
+                                          const MultipleColumnStats& current,
+                                          ColumnStat* retValColumnStats,
+                                          ColumnStat& colStatNew,
                                           const ColumnStat& colStat) const {
     double changeRatio = 1.0
                          - (((double) (colStatNew.getTotalRows()))
@@ -99,7 +144,7 @@ void MultipleColumnStats::updateOtherRows(size_t col,
             continue;
         }
         const ColumnStat& currColStat = current.getColumnStats()[i];
-        ColumnStat& currColStatNew = retVal.columnStats[i];
+        ColumnStat& currColStatNew = retValColumnStats[i];
         currColStatNew.setTotalRows(colStatNew.getTotalRows());
         currColStatNew.setUniqueValues(((double) (currColStat.getUniqueValues()))
                                        * (1.0
@@ -125,6 +170,10 @@ MultipleColumnStats MultipleColumnStats::filterEquals(size_t col,
     colStatNew.setMinVal(value);
     colStatNew.setMaxVal(value);
 
+    if (colStat.getTotalRows() == 0) {
+        return retVal;
+    }
+
     if (!(colStat.getMinVal() <= value && value <= colStat.getMaxVal())) {
         for (size_t i = 0; i < cols; ++i) {
             ColumnStat& currColStatNew = retVal.columnStats[i];
@@ -138,9 +187,58 @@ MultipleColumnStats MultipleColumnStats::filterEquals(size_t col,
     colStatNew.setUniqueValues(1);
     colStatNew.setTotalRows(((double) colStat.getTotalRows())
                             / ((double) colStat.getUniqueValues()));
-    updateOtherRows(col, *this, retVal, colStatNew, colStat);
+    updateOtherRows(col, *this, retVal.columnStats, colStatNew, colStat);
     return retVal;
 }
+
+MultipleColumnStats MultipleColumnStats::filterRangeGreater(const size_t col,
+                                                            const uint64_t greaterThan) const {
+    if (col >= cols) {
+        throw runtime_error("MultipleColumnStats::greaterFilterRange index out of bounds [col="
+                            + to_string(col)
+                            + ", cols="
+                            + to_string(cols)
+                            + ", greaterThan="
+                            + to_string(greaterThan)
+                            + "]");
+    }
+    //We can be certain there are no results greater than the max value
+    if (greaterThan == numeric_limits<uint64_t>::max()) {
+        MultipleColumnStats retVal(*this);
+        for (size_t i = 0; i < cols; ++i) {
+            ColumnStat& currColStatNew = retVal.columnStats[i];
+            currColStatNew.setTotalRows(0);
+            currColStatNew.setUniqueValues(0);
+        }
+        return retVal;
+    }
+    return filterRange(col, greaterThan + 1, getColumnStats()[col].getMaxVal());
+}
+
+MultipleColumnStats MultipleColumnStats::filterRangeLesser(const size_t col,
+                                                           const uint64_t lessThan) const {
+    if (col >= cols) {
+        throw runtime_error("MultipleColumnStats::lesserFilterRange index out of bounds [col="
+                            + to_string(col)
+                            + ", cols="
+                            + to_string(cols)
+                            + ", lessThan="
+                            + to_string(lessThan)
+                            + "]");
+    }
+    //We can be certain there are no values smaller than 0 (all unsigned)
+    if (lessThan == 0) {
+        MultipleColumnStats retVal(*this);
+        for (size_t i = 0; i < cols; ++i) {
+            ColumnStat& currColStatNew = retVal.columnStats[i];
+            currColStatNew.setTotalRows(0);
+            currColStatNew.setUniqueValues(0);
+        }
+        return retVal;
+    }
+    return filterRange(col, getColumnStats()[col].getMinVal(), lessThan - 1);
+}
+
 MultipleColumnStats MultipleColumnStats::filterRange(size_t col,
                                                      uint64_t greaterOrEqualTo,
                                                      uint64_t lessThanOrEqualTo) const {
@@ -155,6 +253,10 @@ MultipleColumnStats MultipleColumnStats::filterRange(size_t col,
     MultipleColumnStats retVal(*this);
     const ColumnStat& colStat = getColumnStats()[col];
     ColumnStat& colStatNew = retVal.columnStats[col];
+
+    if (colStat.getTotalRows() == 0) {
+        return retVal;
+    }
 
     if (colStat.getMinVal() > lessThanOrEqualTo
         || colStat.getMaxVal() < greaterOrEqualTo
@@ -184,11 +286,11 @@ MultipleColumnStats MultipleColumnStats::filterRange(size_t col,
                    / ((double) (colStat.getMaxVal() - colStat.getMinVal()));
     colStatNew.setUniqueValues(ratio * colStat.getUniqueValues());
     colStatNew.setTotalRows(ratio * colStat.getTotalRows());
-    updateOtherRows(col, *this, retVal, colStatNew, colStat);
+    updateOtherRows(col, *this, retVal.columnStats, colStatNew, colStat);
     return retVal;
 }
-MultipleColumnStatsPair MultipleColumnStats::joinSame(size_t colA,
-                                                      size_t colB) const {
+MultipleColumnStats MultipleColumnStats::filterSame(size_t colA,
+                                                    size_t colB) const {
     if (colA >= cols || colB >= cols) {
         throw runtime_error("MultipleColumnStats::filterRange index out of bounds [colA="
                             + to_string(colA)
@@ -199,65 +301,57 @@ MultipleColumnStatsPair MultipleColumnStats::joinSame(size_t colA,
                             + "]");
     }
 
-    MultipleColumnStatsPair retVal(*this, *this);
+    MultipleColumnStats retVal(*this);
     const ColumnStat& statsColA = getColumnStats()[colA];
     const ColumnStat& statsColB = getColumnStats()[colB];
-    ColumnStat& statsColANewLeft = retVal.getLeft().columnStats[colA];
-    ColumnStat& statsColANewRight = retVal.getRight().columnStats[colA];
-    ColumnStat& statsColBNewLeft = retVal.getLeft().columnStats[colB];
-    ColumnStat& statsColBNewRight = retVal.getRight().columnStats[colB];
+    ColumnStat& statsColANew = retVal.columnStats[colA];
+    ColumnStat& statsColBNew = retVal.columnStats[colB];
+
+    if (statsColA.getTotalRows() == 0) {
+        return retVal;
+    }
 
     //Special case of joining with the same column
     if (colA == colB) {
         const uint64_t totalRows = (statsColA.getTotalRows()
                                     * statsColA.getTotalRows())
-                                   / (statsColANewLeft.getMaxVal()
-                                      - statsColANewLeft.getMinVal()
+                                   / (statsColANew.getMaxVal()
+                                      - statsColANew.getMinVal()
                                       + 1);
 
         for (size_t i = 0; i < cols; ++i) {
-            retVal.getLeft().columnStats[i].setTotalRows(totalRows);
-            retVal.getRight().columnStats[i].setTotalRows(totalRows);
+            retVal.columnStats[i].setTotalRows(totalRows);
+            retVal.columnStats[i].setTotalRows(totalRows);
         }
 
         return retVal;
     }
 
     if (statsColA.getMinVal() > statsColB.getMinVal()) {
-        statsColBNewLeft.setMinVal(statsColA.getMinVal());
-        statsColBNewRight.setMinVal(statsColA.getMinVal());
+        statsColBNew.setMinVal(statsColA.getMinVal());
     }
     else if (statsColB.getMinVal() > statsColA.getMinVal()) {
-        statsColANewLeft.setMinVal(statsColB.getMinVal());
-        statsColANewRight.setMinVal(statsColB.getMinVal());
+        statsColANew.setMinVal(statsColB.getMinVal());
     }
     if (statsColA.getMaxVal() > statsColB.getMaxVal()) {
-        statsColBNewLeft.setMaxVal(statsColA.getMaxVal());
-        statsColBNewRight.setMaxVal(statsColA.getMaxVal());
+        statsColBNew.setMaxVal(statsColA.getMaxVal());
     }
     else if (statsColB.getMaxVal() > statsColA.getMaxVal()) {
-        statsColANewLeft.setMaxVal(statsColB.getMaxVal());
-        statsColANewRight.setMaxVal(statsColB.getMaxVal());
+        statsColANew.setMaxVal(statsColB.getMaxVal());
     }
     //No need to set anything else, we can be certain they will have the correct value
     const uint64_t totalRows = statsColA.getTotalRows()
-                               / (statsColANewLeft.getMaxVal()
-                                  - statsColANewLeft.getMinVal()
+                               / (statsColANew.getMaxVal()
+                                  - statsColANew.getMinVal()
                                   + 1);
-    statsColANewLeft.setTotalRows(totalRows);
-    statsColANewRight.setTotalRows(totalRows);
-    statsColBNewLeft.setTotalRows(totalRows);
-    statsColBNewRight.setTotalRows(totalRows);
+    statsColANew.setTotalRows(totalRows);
+    statsColBNew.setTotalRows(totalRows);
     //Running this with cols as the current column doesn't skip anything
-    updateOtherRows(cols, *this, retVal.getLeft(), statsColANewLeft, statsColA);
-    updateOtherRows(cols,
-                    *this,
-                    retVal.getRight(),
-                    statsColANewRight,
-                    statsColA);
+    //(we need to apply the same to all, including the filtered ones)
+    updateOtherRows(cols, *this, retVal.columnStats, statsColANew, statsColA);
     return retVal;
 }
-MultipleColumnStatsPair MultipleColumnStats::join(size_t colThis,
+MultipleColumnStats MultipleColumnStats::join(size_t colThis,
                                                   const MultipleColumnStats& other,
                                                   size_t colOther) const {
     if (colThis >= cols || colOther >= other.cols) {
@@ -272,11 +366,26 @@ MultipleColumnStatsPair MultipleColumnStats::join(size_t colThis,
                             + "]");
     }
 
-    MultipleColumnStatsPair retVal(*this, other);
+    MultipleColumnStats retVal(*this, other);
     const ColumnStat& statsColThis = getColumnStats()[colThis];
     const ColumnStat& statsColOther = other.getColumnStats()[colOther];
-    ColumnStat& statsColThisNew = retVal.getLeft().columnStats[colThis];
-    ColumnStat& statsColOtherNew = retVal.getRight().columnStats[colOther];
+    ColumnStat& statsColThisNew = retVal.columnStats[colThis];
+    ColumnStat& statsColOtherNew = retVal.columnStats[cols + colOther];
+
+    if (statsColThis.getTotalRows() == 0) {
+        for (size_t i = cols; i < retVal.cols; ++i) {
+            ColumnStat& toChange = retVal.columnStats[i];
+            toChange.setTotalRows(0);
+            toChange.setUniqueValues(0);
+        }
+    }
+    else if (statsColOther.getTotalRows() == 0) {
+        for (size_t i = 0; i < cols; ++i) {
+            ColumnStat& toChange = retVal.columnStats[i];
+            toChange.setTotalRows(0);
+            toChange.setUniqueValues(0);
+        }
+    }
 
     if (statsColThis.getMinVal() > statsColOther.getMinVal()) {
         statsColOtherNew.setMinVal(statsColThis.getMinVal());
@@ -292,25 +401,25 @@ MultipleColumnStatsPair MultipleColumnStats::join(size_t colThis,
     }
     const uint64_t range = statsColThisNew.getMaxVal()
                            - statsColThisNew.getMinVal()
-                     + 1;
+                           + 1;
     const uint64_t totalRows = (statsColThis.getTotalRows()
-                          * statsColOther.getTotalRows())
-                         / range;
+                                * statsColOther.getTotalRows())
+                               / range;
     const uint64_t uniqueRows = (statsColThis.getUniqueValues()
-                           * statsColOther.getUniqueValues())
-                          / range;
+                                 * statsColOther.getUniqueValues())
+                                / range;
     statsColThisNew.setTotalRows(totalRows);
     statsColThisNew.setUniqueValues(uniqueRows);
     statsColOtherNew.setTotalRows(totalRows);
     statsColOtherNew.setUniqueValues(uniqueRows);
     updateOtherRows(colThis,
                     *this,
-                    retVal.getLeft(),
+                    retVal.columnStats,
                     statsColThisNew,
                     statsColThis);
     updateOtherRows(colOther,
                     other,
-                    retVal.getRight(),
+                    retVal.columnStats + cols,
                     statsColOtherNew,
                     statsColOther);
 

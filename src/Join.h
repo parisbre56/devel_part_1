@@ -19,6 +19,8 @@ class Join;
 #include "JoinSumResult.h"
 #include "Relation.h"
 #include "ResultContainer.h"
+#include "MultipleColumnStats.h"
+#include "JoinOrder.h"
 
 class Join {
 protected:
@@ -34,6 +36,10 @@ protected:
     const TableColumn** sumColumns; //TODO reorder to bring same table closer?
     //Current results of joining, each relation is stored in its own resultContainer
     ResultContainer** resultContainers;
+    MultipleColumnStats** tableStats;
+    uint32_t subsets;
+    uint32_t subsetCounter;
+    JoinOrder** joinOrders;
 
     const JoinRelation* findSmallestRelation(const bool* const isRelationProcessed,
                                              uint32_t& smallestRelationIndex,
@@ -53,7 +59,9 @@ protected:
                        uint32_t * const sumTable) const;
     unsigned char getBitmaskSize(const uint64_t rows) const;
     uint32_t getBucketAndChainBuckets(const uint64_t tuplesInBucket) const;
-
+    MultipleColumnStats loadStats(const uint32_t table) const;
+    void createSubsets();
+    void createSubsets(const JoinOrder& start);
 public:
     Join() = delete;
     Join(const TableLoader& tableLoader, uint32_t arraySize);

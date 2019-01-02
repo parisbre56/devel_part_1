@@ -27,6 +27,7 @@ public:
 
     uint64_t getValue() const;
     virtual bool passesFilter(const Table& table, uint64_t rownum) const = 0;
+    virtual MultipleColumnStats applyFilter(const MultipleColumnStats& stat) const = 0;
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const FilterNumericValue& toPrint);

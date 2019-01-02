@@ -24,6 +24,7 @@ public:
     virtual ~FilterEquals();
 
     virtual bool passesFilter(const Table& table, uint64_t rownum) const;
+    MultipleColumnStats applyFilter(const MultipleColumnStats& stat) const;
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const FilterEquals& toPrint);

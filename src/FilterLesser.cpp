@@ -18,6 +18,10 @@ bool FilterLesser::passesFilter(const Table& table, uint64_t rownum) const {
     return table.getValue(rownum, col) < value;
 }
 
+MultipleColumnStats FilterLesser::applyFilter(const MultipleColumnStats& stat) const {
+    return stat.filterRangeLesser(col, value);
+}
+
 void FilterLesser::write(ostream& os) const {
     os << "[FilterLesser table="
        << table

@@ -29,6 +29,7 @@ public:
     size_t getColB() const;
 
     bool passesFilter(const Table& table, uint64_t rownum) const;
+    MultipleColumnStats applyFilter(const MultipleColumnStats& stat) const;
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const FilterSameTable& toPrint);

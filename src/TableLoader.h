@@ -37,6 +37,7 @@ public:
                           const uint64_t * col_row_table,
                           bool ownsMemory);
     const Table& getTable(uint32_t index) const;
+    const MultipleColumnStats& getStats(uint32_t index) const;
     uint32_t getTables() const;
     uint32_t getArraySize() const;
 

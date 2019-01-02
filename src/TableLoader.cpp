@@ -152,6 +152,16 @@ const Table& TableLoader::getTable(uint32_t index) const {
     }
     return *(this->tableArray[index]);
 }
+const MultipleColumnStats& TableLoader::getStats(uint32_t index) const {
+    if (index >= this->tables) {
+        throw runtime_error("TableLoader.getStats failed. IndexOutOfBounds [tables="
+                            + to_string(this->tables)
+                            + ", index="
+                            + to_string(index)
+                            + "]");
+    }
+    return *(tableStats[index]);
+}
 uint32_t TableLoader::getTables() const {
     return tables;
 }

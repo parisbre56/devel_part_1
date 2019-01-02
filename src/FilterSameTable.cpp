@@ -29,6 +29,10 @@ bool FilterSameTable::passesFilter(const Table& table, uint64_t rownum) const {
     return table.getValue(rownum, col) == table.getValue(rownum, colB);
 }
 
+MultipleColumnStats FilterSameTable::applyFilter(const MultipleColumnStats& stat) const {
+    return stat.filterSame(col, colB);
+}
+
 void FilterSameTable::write(ostream& os) const {
     os
     << "[FilterLesser table="

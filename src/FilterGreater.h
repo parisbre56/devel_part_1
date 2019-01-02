@@ -11,6 +11,7 @@
 class FilterGreater;
 
 #include "FilterNumericValue.h"
+#include "MultipleColumnStats.h"
 
 class FilterGreater: public FilterNumericValue {
     virtual void write(std::ostream& os) const;
@@ -24,6 +25,7 @@ public:
     virtual ~FilterGreater();
 
     virtual bool passesFilter(const Table& table, uint64_t rownum) const;
+    MultipleColumnStats applyFilter(const MultipleColumnStats& stat) const;
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const FilterGreater& toPrint);

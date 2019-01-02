@@ -18,6 +18,10 @@ bool FilterGreater::passesFilter(const Table& table, uint64_t rownum) const {
     return table.getValue(rownum, col) > value;
 }
 
+MultipleColumnStats FilterGreater::applyFilter(const MultipleColumnStats& stat) const {
+    return stat.filterRangeGreater(col, value);
+}
+
 void FilterGreater::write(ostream& os) const {
     os << "[FilterGreater table="
        << table

@@ -18,6 +18,10 @@ bool FilterEquals::passesFilter(const Table& table, uint64_t rownum) const {
     return table.getValue(rownum, col) == value;
 }
 
+MultipleColumnStats FilterEquals::applyFilter(const MultipleColumnStats& stat) const {
+    return stat.filterEquals(col, value);
+}
+
 void FilterEquals::write(ostream& os) const {
     os << "[FilterEquals table="
        << table
