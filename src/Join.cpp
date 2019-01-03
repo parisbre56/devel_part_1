@@ -32,7 +32,8 @@ Join::Join(const TableLoader& tableLoader, uint32_t arraySize) :
         sumColumnNum(0),
         sumColumns(new const TableColumn*[arraySize]),
         resultContainers(nullptr),
-        tableStats(nullptr) {
+        oldOrder(nullptr),
+        newOrder(nullptr) {
 
 }
 
@@ -72,20 +73,11 @@ Join::~Join() {
         }
         delete[] resultContainers;
     }
-    if (tableStats != nullptr) {
-        for (uint32_t i = 0; i < tableNum; ++i) {
-            if (tableStats[i] != nullptr) {
-                delete tableStats[i];
-            }
-        }
+    if (oldOrder != nullptr) {
+        delete oldOrder;
     }
-    if (joinOrders != nullptr) {
-        for (uint32_t i = 0; i < subsets; ++i) {
-            if (joinOrders[i] != nullptr) {
-                delete joinOrders[i];
-            }
-        }
-        delete[] joinOrders;
+    if (newOrder != nullptr) {
+        delete newOrder;
     }
 }
 
@@ -257,36 +249,6 @@ void Join::storeResut(ResultContainer* newResult) {
     }
 }
 
-void Join::createSubsets() {
-    subsetCounter = 0;
-    for (uint32_t i = 1; i < tableNum; ++i) {
-        const JoinOrder start(i);
-        createSubsets(start);
-    }
-}
-
-void Join::createSubsets(const JoinOrder& current) {
-    //If no tables have been ordered, start at 0, else start at our current point
-    const uint32_t start =
-            (current.getOrderedTables() == 0) ? 0 :
-                                                  (current.getTableOrder()[current.getOrderedTables()
-                                                                             - 1]);
-    //Do not add tables after a certain point, they will be added by recursion
-    const uint32_t limit = tableNum - current.getArraySize()
-                           + current.getOrderedTables()
-                           + 1;
-    if (current.getOrderedTables() == current.getArraySize() - 1) {
-        for (uint32_t i = start; i < limit; ++i) {
-            joinOrders[subsetCounter++] = new JoinOrder(current.addTableNew(i));
-        }
-    }
-    else {
-        for (uint32_t i = start; i < limit; ++i) {
-            createSubsets(current.addTableNew(i));
-        }
-    }
-}
-
 JoinSumResult Join::performJoin() {
     ConsoleOutput consoleOutput("performJoin");
     JoinSumResult retVal(sumColumnNum);
@@ -317,22 +279,22 @@ JoinSumResult Join::performJoin() {
     //Determines which result holds the rows for table. Initialized to nullptr when a table has not been joined.
     bool isRelationProcessed[joinRelationNum] { /* init to false */};
     resultContainers = new ResultContainer*[tableNum] {/* init to nullptr */};
-    tableStats = new MultipleColumnStats*[tableNum] {/* init to nullptr */};
-    //Size is 2^n which is all possible subsets
-    subsets = 1;
-    subsets = subsets << tableNum;
-    joinOrders = new JoinOrder*[subsets] {/* init to nullptr */};
 
     //Apply filters to all table stats
+
+    newOrder = new JoinOrderContainer(tableNum);
     for (uint32_t i = 0; i < tableNum; ++i) {
-        tableStats[i] = new MultipleColumnStats(loadStats(i));
+        JoinOrder toAdd(tableNum, i);
+        newOrder->addIfBetterMove(move(toAdd), loadStats(i));
     }
-    createSubsets();
-    subsetCounter = 0;
     for (uint32_t permutationSize = 1; permutationSize < tableNum;
             ++permutationSize) {
-        for (; subsetCounter < subsets; ++subsetCounter) {
-            JoinOrder& currentSubset = joinOrders[subsetCounter];
+        oldOrder = newOrder;
+        newOrder = new JoinOrderContainer(oldOrder->getUsed() * 2);
+        for (uint32_t subsetIndex; subsetIndex < oldOrder->getUsed();
+                ++subsetIndex) {
+            const JoinOrder& currentSubset = *((oldOrder->getJoinOrders())[subsetIndex]);
+            const MultipleColumnStats& currentStat = *((oldOrder->getStats())[subsetIndex]);
             if (currentSubset.getOrderedTables() != permutationSize) {
                 break;
             }
@@ -340,10 +302,6 @@ JoinSumResult Join::performJoin() {
     }
 
     //Now that we've found the join order we no longer need these things, so free up some space
-    delete[] tableStats;
-    tableStats = nullptr;
-    delete[] joinOrders;
-    joinOrders = nullptr;
 
     while (true) {
         uint32_t smallestRelationIndex;

@@ -11,7 +11,6 @@ class MultipleColumnStats;
 
 #include <ostream>
 
-#include "MultipleColumnStatsPair.h"
 #include "ColumnStat.h"
 #include "Table.h"
 

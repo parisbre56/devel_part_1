@@ -24,8 +24,6 @@ protected:
     JoinOrder** joinOrders;
     MultipleColumnStats** stats;
 
-    /** Returns size for not found **/
-    uint32_t getIndexForSet(const JoinOrder& asSet);
     void increaseSize();
 public:
     JoinOrderContainer();
@@ -36,14 +34,21 @@ public:
     JoinOrderContainer& operator=(JoinOrderContainer&& toMove) = delete;
     virtual ~JoinOrderContainer();
 
+    /** Returns size for not found **/
+    uint32_t getIndexForSet(const JoinOrder& asSet);
     /** True if added, false otherwise **/
     bool addIfBetter(const JoinOrder& toAdd, const MultipleColumnStats& stat);
     bool addIfBetterMove(const JoinOrder&& toAdd,
                          const MultipleColumnStats&& stat);
-    const JoinOrder * getForSet(const JoinOrder& asSet) const;
+    /** Return nullptr for not found **/
+    const JoinOrder * getOrderForSet(const JoinOrder& asSet) const;
+    /** Return nullptr for not found **/
+    const MultipleColumnStats * getStatForSet(const JoinOrder& asSet) const;
     const JoinOrder * const * getJoinOrders() const;
+    const MultipleColumnStats * const * getStats() const;
     uint32_t getSize() const;
     uint32_t getUsed() const;
+    void reset();
 
     friend std::ostream& operator<<(std::ostream& os, const JoinOrderContainer& toPrint);
 };
