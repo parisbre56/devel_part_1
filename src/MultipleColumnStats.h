@@ -18,7 +18,7 @@ class MultipleColumnStats;
 
 class MultipleColumnStats {
 protected:
-    const size_t cols;
+    size_t cols;
     ColumnStat* columnStats;
 
     void updateOtherRows(size_t col,
@@ -49,6 +49,7 @@ public:
                              const MultipleColumnStats& other,
                              size_t colOther) const;
 
+    size_t getCols() const;
     const ColumnStat* getColumnStats() const;
 
     friend std::ostream& operator<<(std::ostream& os,

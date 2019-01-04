@@ -81,7 +81,7 @@ MultipleColumnStats::MultipleColumnStats(const MultipleColumnStats& toCopyLeft,
     memcpy(columnStats,
            toCopyLeft.columnStats,
            sizeof(ColumnStat) * toCopyLeft.cols);
-    memcpy(columnStats + toCopyLeft.columnStats,
+    memcpy(columnStats + toCopyLeft.cols,
            toCopyRight.columnStats,
            sizeof(ColumnStat) * toCopyRight.cols);
 }
@@ -95,25 +95,17 @@ MultipleColumnStats::MultipleColumnStats(MultipleColumnStats&& toMove) :
 }
 
 MultipleColumnStats& MultipleColumnStats::operator=(const MultipleColumnStats& toCopy) {
-    if (toCopy.cols != cols) {
-        throw runtime_error("Cols did not match [cols="
-                            + to_string(cols)
-                            + ", toCopy.cols="
-                            + to_string(toCopy.cols)
-                            + "]");
+    if (cols < toCopy.cols) {
+        delete[] columnStats;
+        columnStats = new ColumnStat[toCopy.cols];
     }
+    cols = toCopy.cols;
     memcpy(columnStats, toCopy.columnStats, cols * sizeof(ColumnStat));
     return *this;
 }
 
 MultipleColumnStats& MultipleColumnStats::operator=(MultipleColumnStats&& toMove) {
-    if (toMove.cols != cols) {
-        throw runtime_error("Cols did not match [cols="
-                            + to_string(cols)
-                            + ", toCopy.cols="
-                            + to_string(toMove.cols)
-                            + "]");
-    }
+    cols = toMove.cols;
     if (toMove.columnStats == nullptr) {
         throw runtime_error("stats have already been moved");
     }
@@ -424,6 +416,10 @@ MultipleColumnStats MultipleColumnStats::join(size_t colThis,
                     statsColOther);
 
     return retVal;
+}
+
+size_t MultipleColumnStats::getCols() const {
+    return cols;
 }
 
 const ColumnStat* MultipleColumnStats::getColumnStats() const {

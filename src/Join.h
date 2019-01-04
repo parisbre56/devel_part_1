@@ -37,12 +37,10 @@ protected:
     const TableColumn** sumColumns; //TODO reorder to bring same table closer?
     //Current results of joining, each relation is stored in its own resultContainer
     ResultContainer** resultContainers;
+    MultipleColumnStats** tableStats;
     JoinOrderContainer* oldOrder;
     JoinOrderContainer* newOrder;
 
-    const JoinRelation* findSmallestRelation(const bool* const isRelationProcessed,
-                                             uint32_t& smallestRelationIndex,
-                                             uint32_t& sameTableRelations) const;
     Relation loadRelation(const uint32_t tableReference,
                           const uint32_t colsToProcessNum,
                           const TableColumn* const colsToProcess) const;
@@ -59,6 +57,20 @@ protected:
     unsigned char getBitmaskSize(const uint64_t rows) const;
     uint32_t getBucketAndChainBuckets(const uint64_t tuplesInBucket) const;
     MultipleColumnStats loadStats(const uint32_t table) const;
+    /** Handle joining two tables. Two first args are the retvals **/
+    void updateJoinStats(MultipleColumnStats& newStat,
+                         bool& disconnected,
+                         const JoinOrder& currentSubset,
+                         size_t preJoinCols,
+                         uint32_t currTable,
+                         size_t currCol,
+                         uint32_t joinTable,
+                         size_t joinCol);
+    /** Tells us how many col stats we need to skip to reach the stats for the given table,
+     * assuming the stat col order follows the same order as the given JoinOrder **/
+    size_t colOffsetForTable(const JoinOrder& currentSubset,
+                             uint32_t joinTable);
+
 public:
     Join() = delete;
     Join(const TableLoader& tableLoader, uint32_t arraySize);

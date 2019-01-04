@@ -32,6 +32,7 @@ Join::Join(const TableLoader& tableLoader, uint32_t arraySize) :
         sumColumnNum(0),
         sumColumns(new const TableColumn*[arraySize]),
         resultContainers(nullptr),
+        tableStats(nullptr),
         oldOrder(nullptr),
         newOrder(nullptr) {
 
@@ -72,6 +73,13 @@ Join::~Join() {
             }
         }
         delete[] resultContainers;
+    }
+    if (tableStats != nullptr) {
+        for (uint32_t i = 0; i < tableNum; ++i) {
+            if (tableStats[i] != nullptr) {
+                delete tableStats[i];
+            }
+        }
     }
     if (oldOrder != nullptr) {
         delete oldOrder;
@@ -249,6 +257,44 @@ void Join::storeResut(ResultContainer* newResult) {
     }
 }
 
+size_t Join::colOffsetForTable(const JoinOrder& currentSubset,
+                               uint32_t joinTable) {
+    size_t colSum = 0;
+    for (uint32_t orderedTableIndex = 0;
+            orderedTableIndex < currentSubset.getOrderedTables();
+            ++orderedTableIndex) {
+        const uint32_t currOrderedTable = currentSubset.getTableOrder()[orderedTableIndex];
+        if (currOrderedTable == joinTable) {
+            break;
+        }
+        colSum += tableStats[currOrderedTable]->getCols();
+    }
+    return colSum;
+}
+
+void Join::updateJoinStats(MultipleColumnStats& newStat,
+                           bool& disconnected,
+                           const JoinOrder& currentSubset,
+                           size_t preJoinCols,
+                           uint32_t currTable,
+                           size_t currCol,
+                           uint32_t joinTable,
+                           size_t joinCol) {
+    if (disconnected) {
+        disconnected = false;
+        newStat = newStat.join(colOffsetForTable(currentSubset, joinTable)
+                               + joinCol,
+                               *(tableStats[currTable]),
+                               joinCol);
+    }
+    //If we've already joined, then it's the same as applying a same table filter
+    else {
+        newStat = newStat.filterSame(colOffsetForTable(currentSubset, joinTable)
+                                     + joinCol,
+                                     preJoinCols + currCol);
+    }
+}
+
 JoinSumResult Join::performJoin() {
     ConsoleOutput consoleOutput("performJoin");
     JoinSumResult retVal(sumColumnNum);
@@ -279,102 +325,232 @@ JoinSumResult Join::performJoin() {
     //Determines which result holds the rows for table. Initialized to nullptr when a table has not been joined.
     bool isRelationProcessed[joinRelationNum] { /* init to false */};
     resultContainers = new ResultContainer*[tableNum] {/* init to nullptr */};
+    tableStats = new MultipleColumnStats*[tableNum] {/* init to nullptr */};
 
     //Apply filters to all table stats
-
     newOrder = new JoinOrderContainer(tableNum);
     for (uint32_t i = 0; i < tableNum; ++i) {
         JoinOrder toAdd(tableNum, i);
-        newOrder->addIfBetterMove(move(toAdd), loadStats(i));
+        tableStats[i] = new MultipleColumnStats(loadStats(i));
+        MultipleColumnStats stats(*(tableStats[i]));
+        newOrder->addIfBetterMove(move(toAdd), move(stats));
     }
+    //Find joinOrder
+    JoinOrderContainer finalOrder(tableNum);
     for (uint32_t permutationSize = 1; permutationSize < tableNum;
             ++permutationSize) {
+        //TODO reset and cycle for better performance?
         oldOrder = newOrder;
         newOrder = new JoinOrderContainer(oldOrder->getUsed() * 2);
-        for (uint32_t subsetIndex; subsetIndex < oldOrder->getUsed();
+        for (uint32_t subsetIndex = 0; subsetIndex < oldOrder->getUsed();
                 ++subsetIndex) {
             const JoinOrder& currentSubset = *((oldOrder->getJoinOrders())[subsetIndex]);
             const MultipleColumnStats& currentStat = *((oldOrder->getStats())[subsetIndex]);
-            if (currentSubset.getOrderedTables() != permutationSize) {
-                break;
+            bool notAdded = true;
+            for (uint32_t toAdd = 0; toAdd < tableNum; ++toAdd) {
+                //Skip tables that are already processed in this subset
+                if (currentSubset.containsTable(toAdd)) {
+                    continue;
+                }
+                //Compute new stats
+                MultipleColumnStats newStat(currentStat);
+                bool disconnected = true;
+                const size_t preJoinCols = newStat.getCols();
+                for (uint32_t joinIndex = 0; joinIndex < joinRelationNum;
+                        joinIndex++) {
+                    const JoinRelation& currRelation = *(joinRelations[joinIndex]);
+                    if (currRelation.getLeftNum() == toAdd) {
+                        if (currentSubset.containsTable(currRelation.getRightNum())) {
+                            updateJoinStats(newStat,
+                                            disconnected,
+                                            currentSubset,
+                                            preJoinCols,
+                                            toAdd,
+                                            currRelation.getLeftCol(),
+                                            currRelation.getRightNum(),
+                                            currRelation.getRightCol());
+                        }
+                    }
+                    else if (currRelation.getRightNum() == toAdd) {
+                        if (currentSubset.containsTable(currRelation.getLeftNum())) {
+                            updateJoinStats(newStat,
+                                            disconnected,
+                                            currentSubset,
+                                            preJoinCols,
+                                            toAdd,
+                                            currRelation.getRightCol(),
+                                            currRelation.getLeftNum(),
+                                            currRelation.getLeftCol());
+                        }
+                    }
+                }
+                //Skip disconnected tables
+                if (disconnected) {
+                    continue;
+                }
+                notAdded = false;
+                //Add new subset if better
+                newOrder->addIfBetterMove(currentSubset.addTableNew(toAdd),
+                                          move(newStat));
+            }
+            if (notAdded && currentSubset.getOrderedTables() > 1) {
+                finalOrder.stealEntry(*oldOrder, subsetIndex);
             }
         }
-    }
-
-    //Now that we've found the join order we no longer need these things, so free up some space
-
-    while (true) {
-        uint32_t smallestRelationIndex;
-        uint32_t sameTableRelations;
-        const JoinRelation * const smallestRelation = findSmallestRelation(isRelationProcessed,
-                                                                           smallestRelationIndex,
-                                                                           sameTableRelations);
-        if (smallestRelation == nullptr) {
-            CO_IFDEBUG(consoleOutput, "No more relations to process");
+        //We no longer need the old order, delete it
+        delete oldOrder;
+        oldOrder = nullptr;
+        //No use continuing if we have nothing to do. Stuff should have been added into the final order
+        if (newOrder->getUsed() == 0) {
             break;
         }
-        CO_IFDEBUG(consoleOutput, "Smallest relation " << *smallestRelation);
+    }
+    CO_IFDEBUG(consoleOutput, "newOrder="<<*newOrder);
 
-        TableColumn colsToProcessLeft[sameTableRelations];
-        TableColumn colsToProcessRight[sameTableRelations];
-        sameTableRelations = 0;
-        for (uint32_t relationIndex = 0; relationIndex < joinRelationNum;
-                ++relationIndex) {
-            const JoinRelation& currRelation = *(joinRelations[relationIndex]);
-            unsigned char cmp = currRelation.sameJoinAs(*smallestRelation,
-                                                        resultContainers);
-            if (cmp) {
-                CO_IFDEBUG(consoleOutput,
-                           "Will process relation [cmp=" << to_string(cmp) << ", currRelation=" << currRelation << "]");
-                isRelationProcessed[relationIndex] = true;
-                if (cmp == 1) {
-                    colsToProcessLeft[sameTableRelations].setTableNum(currRelation.getLeftNum());
-                    colsToProcessLeft[sameTableRelations].setTableCol(currRelation.getLeftCol());
-                    colsToProcessRight[sameTableRelations].setTableNum(currRelation.getRightNum());
-                    colsToProcessRight[sameTableRelations].setTableCol(currRelation.getRightCol());
-                }
-                else if (cmp == 2) {
-                    colsToProcessLeft[sameTableRelations].setTableNum(currRelation.getRightNum());
-                    colsToProcessLeft[sameTableRelations].setTableCol(currRelation.getRightCol());
-                    colsToProcessRight[sameTableRelations].setTableNum(currRelation.getLeftNum());
-                    colsToProcessRight[sameTableRelations].setTableCol(currRelation.getLeftCol());
-                }
-                else {
-                    throw runtime_error("Unknown cmp while searching for matching relations");
-                }
-                sameTableRelations++;
-            }
+    //Everything left in the newOrder (either 1 or 0 entries) should be moved to the final order
+    for (uint32_t subsetIndex = 0; subsetIndex < newOrder->getUsed();
+            ++subsetIndex) {
+        finalOrder.stealEntry(*newOrder, subsetIndex);
+    }
+    CO_IFDEBUG(consoleOutput, "finalOrder="<<finalOrder);
+
+    //Now that we've found the join order we no longer need these things, so free up some space
+    delete newOrder;
+    newOrder = nullptr;
+    for (uint32_t i = 0; i < tableNum; ++i) {
+        if (tableStats[i] != nullptr) {
+            delete tableStats[i];
+            tableStats[i] = nullptr;
         }
+    }
+    delete[] tableStats;
+    tableStats = nullptr;
 
-        Relation relL(loadRelation(smallestRelation->getLeftNum(),
-                                   sameTableRelations,
-                                   colsToProcessLeft));
-        Relation relR(loadRelation(smallestRelation->getRightNum(),
-                                   sameTableRelations,
-                                   colsToProcessRight));
-
-        //Empty table means no sum
-        if (relL.getNumTuples() == 0 || relR.getNumTuples() == 0) {
+    //Start joining in the orders we've found
+    for (uint32_t subsetIndex = 0; subsetIndex < finalOrder.getUsed();
+            ++subsetIndex) {
+        const JoinOrder& currentSubset = *((finalOrder.getJoinOrders())[subsetIndex]);
+        CO_IFDEBUG(consoleOutput,
+                   "Processing subset [subsetIndex="<<subsetIndex<<", currentSubset="<<currentSubset<<"]");
+        for (uint32_t subsetTableIndex = 1;
+                subsetTableIndex < currentSubset.getOrderedTables();
+                ++subsetTableIndex) {
             CO_IFDEBUG(consoleOutput,
-                       "Relation empty, not performing join [relL.numTuples=" << relL.getNumTuples() << ", relR.numTuples=" << relR.getNumTuples() << "]");
-            return retVal;
+                       "Processing subset [subsetTableIndex="<<subsetTableIndex<<", subsetIndex="<<subsetIndex<<", currentSubset="<<currentSubset<<"]");
+            uint32_t sameTableRelations = 0;
+            const JoinRelation* smallestRelation = nullptr;
+            for (uint32_t relationIndex = 0; relationIndex < joinRelationNum;
+                    ++relationIndex) {
+                if (isRelationProcessed[relationIndex]) {
+                    continue;
+                }
+                const JoinRelation& currRelation = *(joinRelations[relationIndex]);
+                if (currRelation.getLeftNum()
+                    == currentSubset.getTableOrder()[subsetTableIndex]) {
+                    bool matchesSubset = false;
+                    for (uint32_t i = 0; i < subsetTableIndex; ++i) {
+                        if (currentSubset.getTableOrder()[i]
+                            == currRelation.getRightNum()) {
+                            matchesSubset = true;
+                            break;
+                        }
+                    }
+                    if (matchesSubset) {
+                        ++sameTableRelations;
+                        if (smallestRelation == nullptr) {
+                            smallestRelation = joinRelations[relationIndex];
+                        }
+                    }
+                }
+                else if (currRelation.getRightNum()
+                         == currentSubset.getTableOrder()[subsetTableIndex]) {
+                    bool matchesSubset = false;
+                    for (uint32_t i = 0; i < subsetTableIndex; ++i) {
+                        if (currentSubset.getTableOrder()[i]
+                            == currRelation.getLeftNum()) {
+                            matchesSubset = true;
+                            break;
+                        }
+                    }
+                    if (matchesSubset) {
+                        ++sameTableRelations;
+                        if (smallestRelation == nullptr) {
+                            smallestRelation = joinRelations[relationIndex];
+                        }
+                    }
+                }
+            }
+
+            if (smallestRelation == nullptr) {
+                throw runtime_error("Should never happen: Relation not found");
+            }
+            CO_IFDEBUG(consoleOutput,
+                       "Found relations [sameTableRelations="<<sameTableRelations<<", smallestRelation=" << (*smallestRelation) <<"]");
+
+            TableColumn colsToProcessLeft[sameTableRelations];
+            TableColumn colsToProcessRight[sameTableRelations];
+            sameTableRelations = 0;
+            for (uint32_t relationIndex = 0; relationIndex < joinRelationNum;
+                    ++relationIndex) {
+                const JoinRelation& currRelation = *(joinRelations[relationIndex]);
+                unsigned char cmp = currRelation.sameJoinAs(*smallestRelation,
+                                                            resultContainers);
+                if (cmp != 0) {
+                    CO_IFDEBUG(consoleOutput,
+                               "Will process relation [cmp=" << to_string(cmp) << ", currRelation=" << currRelation << "]");
+                    isRelationProcessed[relationIndex] = true;
+                    if (cmp == 1) {
+                        colsToProcessLeft[sameTableRelations].setTableNum(currRelation.getLeftNum());
+                        colsToProcessLeft[sameTableRelations].setTableCol(currRelation.getLeftCol());
+                        colsToProcessRight[sameTableRelations].setTableNum(currRelation.getRightNum());
+                        colsToProcessRight[sameTableRelations].setTableCol(currRelation.getRightCol());
+                    }
+                    else if (cmp == 2) {
+                        colsToProcessLeft[sameTableRelations].setTableNum(currRelation.getRightNum());
+                        colsToProcessLeft[sameTableRelations].setTableCol(currRelation.getRightCol());
+                        colsToProcessRight[sameTableRelations].setTableNum(currRelation.getLeftNum());
+                        colsToProcessRight[sameTableRelations].setTableCol(currRelation.getLeftCol());
+                    }
+                    else {
+                        throw runtime_error("Unknown cmp while searching for matching relations");
+                    }
+                    sameTableRelations++;
+                }
+            }
+
+            Relation relL(loadRelation(smallestRelation->getLeftNum(),
+                                       sameTableRelations,
+                                       colsToProcessLeft));
+            Relation relR(loadRelation(smallestRelation->getRightNum(),
+                                       sameTableRelations,
+                                       colsToProcessRight));
+
+            //Empty table means no sum
+            if (relL.getNumTuples() == 0 || relR.getNumTuples() == 0) {
+                CO_IFDEBUG(consoleOutput,
+                           "Relation empty, not performing join [relL.numTuples=" << relL.getNumTuples() << ", relR.numTuples=" << relR.getNumTuples() << "]");
+                return retVal;
+            }
+
+            ResultContainer* newResult = new ResultContainer(
+                    (relL.getNumTuples() >= relR.getNumTuples()) ? radixHashJoin(relR,
+                                                                                 relL) :
+                                                                   radixHashJoin(relL,
+                                                                                 relR));
+            CO_IFDEBUG(consoleOutput, "Join result: "<< *newResult);
+
+            //Delete old results and store new results
+            storeResut(newResult);
+
+            //Empty join means no sum
+            if (newResult->getResultCount() == 0) {
+                CO_IFDEBUG(consoleOutput, "Result empty, not performing join");
+                return retVal;
+            }
+            CO_IFDEBUG(consoleOutput,
+                       "Finished processing relations for table for subset")
         }
-
-        ResultContainer* newResult = new ResultContainer(
-                (relL.getNumTuples() >= relR.getNumTuples()) ? radixHashJoin(relR,
-                                                                             relL) :
-                                                               radixHashJoin(relL,
-                                                                             relR));
-        CO_IFDEBUG(consoleOutput, "Join result: "<< *newResult);
-
-        //Delete old results and store new results
-        storeResut(newResult);
-
-        //Empty join means no sum
-        if (newResult->getResultCount() == 0) {
-            CO_IFDEBUG(consoleOutput, "Result empty, not performing join");
-            return retVal;
-        }
+        CO_IFDEBUG(consoleOutput, "Finished processing tables for subset");
     }
     CO_IFDEBUG(consoleOutput,
                "Finished processing relations, processing cartesian products");
@@ -563,7 +739,7 @@ MultipleColumnStats Join::loadStats(const uint32_t table) const {
 ResultContainer Join::radixHashJoin(const Relation& relR,
                                     const Relation& relS) const {
     ConsoleOutput consoleOutput("RadixHashJoin");
-    //consoleOutput.errorOutput() << "JOIN EXECUTION STARTED" << endl;
+//consoleOutput.errorOutput() << "JOIN EXECUTION STARTED" << endl;
 
     HashFunctionBitmask bitmask(getBitmaskSize(relR.getNumTuples()));
 
@@ -598,57 +774,8 @@ ResultContainer Join::radixHashJoin(const Relation& relR,
         rChain.join(sHash, i, retResult);
     }
 
-    //consoleOutput.errorOutput() << "JOIN EXECUTION ENDED" << endl;
+//consoleOutput.errorOutput() << "JOIN EXECUTION ENDED" << endl;
     return retResult;
-}
-
-const JoinRelation* Join::findSmallestRelation(const bool* const isRelationProcessed,
-                                               uint32_t& smallestRelationIndex,
-                                               uint32_t& sameTableRelations) const {
-    const JoinRelation* smallestRelation = nullptr;
-    uint64_t smallestRelationValue = numeric_limits<uint64_t>::max();
-    sameTableRelations = 0;
-    for (uint32_t i = 0; i < joinRelationNum; ++i) {
-        //Skip already processed relations
-        if (isRelationProcessed[i]) {
-            continue;
-        }
-
-        const JoinRelation * const currRel = joinRelations[i];
-
-        //Check left part of the relation
-
-        const uint32_t relLeftJoinTable = currRel->getLeftNum();
-        const ResultContainer* leftResultContainerLoaded = resultContainers[relLeftJoinTable];
-        const uint64_t relLeftRows =
-                (leftResultContainerLoaded == nullptr) ? (tableLoader.getTable(tables[relLeftJoinTable]).getRows()) :
-                                                         (leftResultContainerLoaded->getResultCount());
-        if (relLeftRows < smallestRelationValue) {
-            smallestRelationValue = relLeftRows;
-            smallestRelation = currRel;
-            smallestRelationIndex = i;
-            sameTableRelations = 0;
-        }
-
-        //Check right part of the relation
-        const uint32_t relRightJoinTable = currRel->getRightNum();
-        const ResultContainer* rightResultContainerLoaded = resultContainers[relRightJoinTable];
-        const uint64_t relRightRows =
-                (rightResultContainerLoaded == nullptr) ? (tableLoader.getTable(tables[relRightJoinTable]).getRows()) :
-                                                          (rightResultContainerLoaded->getResultCount());
-
-        if (relRightRows < smallestRelationValue) {
-            smallestRelationValue = relRightRows;
-            smallestRelation = currRel;
-            smallestRelationIndex = i;
-            sameTableRelations = 0;
-        }
-
-        if (smallestRelation->sameJoinAs(*currRel, resultContainers)) {
-            ++sameTableRelations;
-        }
-    }
-    return smallestRelation;
 }
 
 Relation Join::loadRelation(const uint32_t tableReference,
@@ -683,7 +810,7 @@ Relation Join::loadRelation(const uint32_t tableReference,
             tableCols[i] = tableLoader.getTable(tables[payloadTables[i] = currTableColumn.getTableNum()]).getCol(currTableColumn.getTableCol());
         }
     }
-    //If this table has not been previously processed
+//If this table has not been previously processed
     if (resultContainerLoaded == nullptr) {
         //Find filters
         uint32_t filtersToApplyNum = 0;
@@ -732,7 +859,7 @@ Relation Join::loadRelation(const uint32_t tableReference,
         }
         return retVal;
     }
-    //Else, if resultContainerLoaded is not null (i.e. table was part of a previously joined relation)
+//Else, if resultContainerLoaded is not null (i.e. table was part of a previously joined relation)
     return resultContainerLoaded->loadToRelation(colsToProcessNum,
                                                  tableCols,
                                                  payloadTables);

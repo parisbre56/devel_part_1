@@ -31,10 +31,16 @@ JoinOrderContainer::~JoinOrderContainer() {
         }
         delete[] joinOrders;
     }
+    if (stats != nullptr) {
+        for (uint32_t i = 0; i < used; ++i) {
+            delete stats[i];
+        }
+        delete[] stats;
+    }
 }
 
 /** Returns size for not found **/
-uint32_t JoinOrderContainer::getIndexForSet(const JoinOrder& asSet) {
+uint32_t JoinOrderContainer::getIndexForSet(const JoinOrder& asSet) const {
     for (uint32_t i = 0; i < used; ++i) {
         if (asSet.sameSet(*(joinOrders[i]))) {
             return i;
@@ -47,13 +53,13 @@ void JoinOrderContainer::increaseSize() {
     uint32_t oldSize = size;
     size += JOINORDERCONTAINER_H_DEFAULT_SIZE_INCREASE;
 
-    const JoinOrder** oldJoinOrders = joinOrders;
-    joinOrders = new JoinOrder[size];
+    JoinOrder** oldJoinOrders = joinOrders;
+    joinOrders = new JoinOrder*[size];
     memcpy(joinOrders, oldJoinOrders, oldSize * sizeof(JoinOrder*));
     delete[] oldJoinOrders;
 
-    const MultipleColumnStats** oldStats = stats;
-    stats = new MultipleColumnStats[size];
+    MultipleColumnStats** oldStats = stats;
+    stats = new MultipleColumnStats*[size];
     memcpy(stats, oldStats, oldSize * sizeof(MultipleColumnStats*));
     delete[] oldStats;
 }
@@ -83,8 +89,8 @@ bool JoinOrderContainer::addIfBetter(const JoinOrder& toAdd,
     return false;
 }
 
-bool JoinOrderContainer::addIfBetterMove(const JoinOrder&& toAdd,
-                                         const MultipleColumnStats&& stat) {
+bool JoinOrderContainer::addIfBetterMove(JoinOrder&& toAdd,
+                                         MultipleColumnStats&& stat) {
     if (used == size) {
         increaseSize();
     }
@@ -105,6 +111,19 @@ bool JoinOrderContainer::addIfBetterMove(const JoinOrder&& toAdd,
     }
     //Else, if the old one is better
     return false;
+}
+
+bool JoinOrderContainer::stealEntry(JoinOrderContainer& stealFrom,
+                                    uint32_t index) {
+    if (index >= stealFrom.used) {
+        throw runtime_error("index out of bounds [index="
+                            + to_string(index)
+                            + ", stealFrom.used="
+                            + to_string(stealFrom.used)
+                            + "]");
+    }
+    return addIfBetterMove(move(*(stealFrom.joinOrders[index])),
+                           move(*(stealFrom.stats[index])));
 }
 
 const JoinOrder * JoinOrderContainer::getOrderForSet(const JoinOrder& asSet) const {
@@ -150,7 +169,7 @@ ostream& operator<<(ostream& os, const JoinOrderContainer& toPrint) {
     else {
         os << "[";
         for (uint32_t i = 0; i < toPrint.used; ++i) {
-            os << "\n\t" << toPrint.joinOrders[i];
+            os << "\n\t" << *(toPrint.joinOrders[i]);
         }
         os << "]";
     }
@@ -161,7 +180,7 @@ ostream& operator<<(ostream& os, const JoinOrderContainer& toPrint) {
     else {
         os << "[";
         for (uint32_t i = 0; i < toPrint.used; ++i) {
-            os << "\n\t" << toPrint.stats[i];
+            os << "\n\t" << *(toPrint.stats[i]);
         }
         os << "]";
     }
