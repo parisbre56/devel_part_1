@@ -22,10 +22,12 @@ class Join;
 #include "MultipleColumnStats.h"
 #include "JoinOrder.h"
 #include "JoinOrderContainer.h"
+#include "Executor.h"
 
 class Join {
 protected:
     const TableLoader& tableLoader;
+    Executor& executor;
     const uint32_t arraySize;
     uint32_t tableNum;
     uint32_t* tables;
@@ -73,7 +75,9 @@ protected:
 
 public:
     Join() = delete;
-    Join(const TableLoader& tableLoader, uint32_t arraySize);
+    Join(const TableLoader& tableLoader,
+         Executor& executor,
+         uint32_t arraySize);
     Join(const Join& toCopy) = delete;
     Join(Join&& toMove) = delete;
     Join& operator=(const Join& toCopy) = delete;

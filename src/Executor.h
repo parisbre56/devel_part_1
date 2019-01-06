@@ -24,6 +24,8 @@ protected:
     bool shutDown;
     uint32_t queueStart;
     uint32_t queueEnd;
+    uint32_t used;
+    uint32_t threadIdGenerator;
 
     pthread_mutex_t queueMutex;
     pthread_cond_t queueAddedCond;
@@ -33,7 +35,7 @@ protected:
 
     pthread_t* threads;
 
-    void* thread_routine(void* executor);
+    void* thread_routine(void* ignored);
 
 public:
     Executor(uint32_t threadNum, uint32_t queueSize);

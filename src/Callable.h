@@ -23,8 +23,8 @@ protected:
     pthread_cond_t finishedCond;
     bool finished;
 
-    virtual void printSelf(std::ostream& os);
-    virtual T* getResultInternal() = 0;
+    virtual void printSelf(std::ostream& os) const;
+    virtual T* getResultInternal() const = 0;
     virtual void runInternal() = 0;
 public:
     Callable();

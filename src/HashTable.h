@@ -9,6 +9,8 @@
 #define HASHTABLE_H_
 class HashTable;
 
+#define HASHTABLE_H_SEGMENT_SIZE 10000
+
 #include <string>
 
 #include <cstdint>
@@ -16,9 +18,12 @@ class HashTable;
 #include "ConsoleOutput.h"
 #include "Relation.h"
 #include "HashFunction.h"
+#include "Executor.h"
+#include "HistogramJob.h"
 
 class HashTable {
 protected:
+    Executor& executor;
     const uint32_t buckets;
     const uint64_t numTuples;
     HashFunction& hashFunction;
@@ -28,6 +33,9 @@ protected:
     const size_t sizePayloads;
     const bool * const usedRows; //Not managed by HashTable, will not be deleted
     const Tuple * * const orderedTuples;
+    uint64_t segments;
+    HistogramJob * * histogramJobs;
+    PartitionJob * * partitionJobs;
 public:
     HashTable() = delete;
     /** Create a hashTable for the given relation, using the given number
@@ -39,7 +47,8 @@ public:
      *
      * The console output is optional. If not null, it is used to write debug
      * and error info. **/
-    HashTable(const Relation& relation,
+    HashTable(Executor& executor,
+              const Relation& relation,
               HashFunction& hashFunction);
 
     HashTable(const HashTable& toCopy) = delete;

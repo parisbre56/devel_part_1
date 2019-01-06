@@ -20,8 +20,11 @@
 
 using namespace std;
 
-Join::Join(const TableLoader& tableLoader, uint32_t arraySize) :
+Join::Join(const TableLoader& tableLoader,
+           Executor& executor,
+           uint32_t arraySize) :
         tableLoader(tableLoader),
+        executor(executor),
         arraySize(arraySize),
         tableNum(0),
         tables(new uint32_t[arraySize]),
@@ -743,8 +746,8 @@ ResultContainer Join::radixHashJoin(const Relation& relR,
 
     HashFunctionBitmask bitmask(getBitmaskSize(relR.getNumTuples()));
 
-    HashTable rHash(relR, bitmask);
-    HashTable sHash(relS, bitmask);
+    HashTable rHash(executor, relR, bitmask);
+    HashTable sHash(executor, relS, bitmask);
     CO_IFDEBUG(consoleOutput, "Hashes generated");
     CO_IFDEBUG(consoleOutput, "rHash=" << rHash);
     CO_IFDEBUG(consoleOutput, "sHash=" << sHash);

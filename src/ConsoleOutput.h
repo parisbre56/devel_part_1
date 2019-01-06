@@ -22,7 +22,7 @@ class ConsoleOutput;
 class ConsoleOutput {
 protected:
     bool debugEnabled;
-    std::string label;
+    const std::string label;
 public:
     static bool debugEnabledDefault;
 

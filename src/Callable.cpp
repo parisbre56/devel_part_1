@@ -10,7 +10,7 @@
 using namespace std;
 
 template<class T>
-void Callable<T>::printSelf(ostream& os) {
+void Callable<T>::printSelf(ostream& os) const {
     os << "[Callable finished=" << finished << "]";
 }
 

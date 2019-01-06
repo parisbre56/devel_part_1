@@ -11,6 +11,10 @@ class Metadata;
 
 #include "TableLoader.h"
 #include "Join.h"
+#include "Executor.h"
+
+#define METADATA_H_THREAD_NUM 2
+#define METADATA_H_QUEUE_SIZE 1000
 
 class Metadata {
 protected:
@@ -19,6 +23,7 @@ protected:
     Join* activeJoin;
     const uint32_t arraySize;
     uint32_t joinsInBatch;
+    Executor* executor;
 
     void resetBatch();
 
