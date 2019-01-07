@@ -44,9 +44,9 @@ public:
                    HashFunction& hashFunction);
     virtual ~BucketAndChain();
 
-    void join(HashTable& hashToJoin,
-              uint32_t bucketToJoin,
-              ResultContainer& resultAggregator);
+    void join(const HashTable& hashToJoin,
+              const uint32_t bucketToJoin,
+              ResultContainer& resultAggregator) const;
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const BucketAndChain& toPrint);

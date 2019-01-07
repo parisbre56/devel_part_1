@@ -60,6 +60,7 @@ public:
     Relation loadToRelation(const size_t sizePayloads,
                             const uint64_t * const * const payloadCols,
                             const uint32_t * const payloadTables) const;
+    void mergeResult(ResultContainer&& toMerge);
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const ResultContainer& toPrint);

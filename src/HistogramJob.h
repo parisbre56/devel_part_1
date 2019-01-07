@@ -28,8 +28,8 @@ protected:
     uint64_t* getResultInternal() const;
     void runInternal();
 public:
-    HistogramJob(Relation& relation,
-                 HashFunction& hashFunction,
+    HistogramJob(const Relation& relation,
+                 const HashFunction& hashFunction,
                  uint64_t segmentStartInclusive,
                  uint64_t segmentSize);
     HistogramJob(const HistogramJob& toCopy) = delete;
@@ -38,8 +38,8 @@ public:
     HistogramJob& operator=(HistogramJob&& toMove) = delete;
     virtual ~HistogramJob();
 
-    const HashFunction&& getHashFunction() const;
-    const Relation&& getRelation() const;
+    const HashFunction& getHashFunction() const;
+    const Relation& getRelation() const;
     const uint64_t getSegmentSize() const;
     const uint64_t getSegmentStartInclusive() const;
 

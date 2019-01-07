@@ -13,16 +13,26 @@ class PartitionJob;
 
 #include "Callable.h"
 #include "Tuple.h"
+#include "HistogramJob.h"
 
-class PartitionJob: public Callable<Tuple> {
+class PartitionJob: public Callable<void> {
+protected:
+    const HistogramJob& histogramJob;
+    const Tuple* * const outputTuples;
+    uint64_t* segmentPSum;
+
+    void printSelf(std::ostream& os) const;
+    void * getResultInternal() const;
+    void runInternal();
 public:
-    PartitionJob();
-    virtual ~PartitionJob();
-
+    PartitionJob(const HistogramJob& histogramJob,
+                 const uint64_t * const inSegmentPSum,
+                 const Tuple* * const outputTuples);
     PartitionJob(const PartitionJob& toCopy) = delete;
     PartitionJob(PartitionJob&& toMove) = delete;
     PartitionJob& operator=(const PartitionJob& toCopy) = delete;
     PartitionJob& operator=(PartitionJob&& toMove) = delete;
+    virtual ~PartitionJob();
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const PartitionJob& toPrint);

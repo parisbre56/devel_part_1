@@ -12,7 +12,7 @@
 #include "ResultContainer.h"
 #include "ConsoleOutput.h"
 #include "Relation.h"
-#include "HashTable.h"
+#include "HashTableJob.h"
 #include "BucketAndChain.h"
 #include "FilterSameTable.h"
 #include "HashFunctionBitmask.h"
@@ -37,7 +37,9 @@ Join::Join(const TableLoader& tableLoader,
         resultContainers(nullptr),
         tableStats(nullptr),
         oldOrder(nullptr),
-        newOrder(nullptr) {
+        newOrder(nullptr),
+        buckets(0),
+        joinJobs(nullptr) {
 
 }
 
@@ -89,6 +91,14 @@ Join::~Join() {
     }
     if (newOrder != nullptr) {
         delete newOrder;
+    }
+    if (joinJobs != nullptr) {
+        for (uint32_t i = 0; i < buckets; ++i) {
+            if (joinJobs[i] != nullptr) {
+                delete joinJobs[i];
+            }
+        }
+        delete[] joinJobs;
     }
 }
 
@@ -723,10 +733,6 @@ unsigned char Join::getBitmaskSize(const uint64_t rows) const {
     return 13;
 }
 
-uint32_t Join::getBucketAndChainBuckets(const uint64_t tuplesInBucket) const {
-    return tuplesInBucket / 10;
-}
-
 MultipleColumnStats Join::loadStats(const uint32_t table) const {
     MultipleColumnStats retVal(tableLoader.getStats(tables[table]));
     for (uint32_t i = 0; i < filterNum; ++i) {
@@ -740,44 +746,48 @@ MultipleColumnStats Join::loadStats(const uint32_t table) const {
 
 /** relR is stored in key, relS is stored in value **/
 ResultContainer Join::radixHashJoin(const Relation& relR,
-                                    const Relation& relS) const {
+                                    const Relation& relS) {
     ConsoleOutput consoleOutput("RadixHashJoin");
 //consoleOutput.errorOutput() << "JOIN EXECUTION STARTED" << endl;
 
     HashFunctionBitmask bitmask(getBitmaskSize(relR.getNumTuples()));
 
-    HashTable rHash(executor, relR, bitmask);
-    HashTable sHash(executor, relS, bitmask);
-    CO_IFDEBUG(consoleOutput, "Hashes generated");
-    CO_IFDEBUG(consoleOutput, "rHash=" << rHash);
-    CO_IFDEBUG(consoleOutput, "sHash=" << sHash);
+    HashTableJob rHash(executor, relR, bitmask);
+    executor.addToQueue(&rHash);
+    HashTableJob sHash(executor, relS, bitmask);
+    executor.addToQueue(&sHash);
+    //CO_IFDEBUG(consoleOutput, "Hashes generated");
+    //CO_IFDEBUG(consoleOutput, "rHash=" << rHash);
+    //CO_IFDEBUG(consoleOutput, "sHash=" << sHash);
 
-    ResultContainer retResult(relR.getNumTuples() * relS.getNumTuples(),
-                              relR.getSizeTableRows(),
-                              0);
+    bool usedRows[tableNum] {/*init to false*/};
     for (uint32_t i = 0; i < tableNum; ++i) {
         if (relR.getUsedRow(i) || relS.getUsedRow(i)) {
-            retResult.setUsedRow(i);
+            usedRows[i] = true;
         }
     }
-    uint32_t buckets = rHash.getBuckets();
+    buckets = bitmask.getBuckets();
+    joinJobs = new JoinJob*[buckets];
     for (uint32_t i = 0; i < buckets; ++i) {
-        CO_IFDEBUG(consoleOutput, "Processing bucket " << i);
-
-        if (rHash.getTuplesInBucket(i) == 0
-            || sHash.getTuplesInBucket(i) == 0) {
+        joinJobs[i] = new JoinJob(rHash, sHash, i, usedRows);
+        executor.addToQueue(joinJobs[i]);
+    }
+    ResultContainer retResult(move(*(joinJobs[0]->waitAndGetResult())));
+    delete joinJobs[0];
+    joinJobs[0] = nullptr;
+    for (uint32_t i = 1; i < buckets; ++i) {
+        ResultContainer& toMerge = *(joinJobs[i]->waitAndGetResult());
+        if (toMerge.getResultCount() == 0) {
             CO_IFDEBUG(consoleOutput,
-                       "Skipping bucket " << i << ": 0 rows [R=" << rHash.getTuplesInBucket(i) << ", S=" << sHash.getTuplesInBucket(i) << "]");
+                       "Skipping job with empty result [bucket="<<i<<", joinJob="<<*(joinJobs[i])<<", toMerge="<<toMerge<<"]");
             continue;
         }
-
-        HashFunctionModulo modulo(getBucketAndChainBuckets(rHash.getTuplesInBucket(i)));
-        BucketAndChain rChain(rHash, i, modulo);
-        CO_IFDEBUG(consoleOutput, "Created subHashTable " << rChain);
-        rChain.join(sHash, i, retResult);
+        retResult.mergeResult(move(toMerge));
     }
+    delete[] joinJobs;
+    joinJobs = nullptr;
 
-//consoleOutput.errorOutput() << "JOIN EXECUTION ENDED" << endl;
+    //consoleOutput.errorOutput() << "JOIN EXECUTION ENDED" << endl;
     return retResult;
 }
 

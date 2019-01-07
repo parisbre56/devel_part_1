@@ -24,8 +24,8 @@ ResultContainer::ResultContainer(uint64_t maxExpectedResults,
         sizePayloads(sizePayloads),
         resultCount(0),
         usedRows(
-                usedRows == nullptr ? new bool[sizeTableRows] { /*init to false*/} :
-                                      usedRows),
+                (usedRows == nullptr) ? (new bool[sizeTableRows] { /*init to false*/}) :
+                                        (usedRows)),
         manageUsedRows(usedRows == nullptr) {
     const size_t sizeOfTuple = sizeof(Tuple)
                                + sizeof(Tuple*)
@@ -213,6 +213,13 @@ Relation ResultContainer::loadToRelation(const size_t sizePayloads,
         currResult = currResult->getNext();
     }
     return rel;
+}
+
+void ResultContainer::mergeResult(ResultContainer&& toMerge) {
+    Result* oldEndNext = end->getNext();
+    end->setNext(toMerge.start);
+    toMerge.end->getLastSegment()->setNext(oldEndNext);
+    toMerge.start = nullptr;
 }
 
 std::ostream& operator<<(std::ostream& os, const ResultContainer& toPrint) {

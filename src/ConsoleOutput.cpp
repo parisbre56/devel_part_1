@@ -11,6 +11,10 @@
 #include <iomanip>
 #include <chrono>
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
+
 using namespace std;
 using namespace std::chrono;
 
@@ -52,6 +56,9 @@ ostream& output(ostream& stream, string level, string label) {
     time_t cnow = system_clock::to_time_t(now);
     tm localt = *localtime(&cnow);
 
+    //Get thread id
+    pid_t tid = syscall(SYS_gettid);
+
     stream << put_time(&localt, "%H:%M:%S")
            << '.'
            << setfill('0')
@@ -59,7 +66,9 @@ ostream& output(ostream& stream, string level, string label) {
            << ms.count()
            << " "
            << level
-           << " ["
+           << " ("
+           << tid
+           << ") ["
            << label
            << "] ";
     return stream;

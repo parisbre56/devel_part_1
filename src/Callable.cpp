@@ -7,6 +7,9 @@
 
 #include "Callable.h"
 
+#include "HashTable.h"
+#include "ResultContainer.h"
+
 using namespace std;
 
 template<class T>
@@ -16,6 +19,7 @@ void Callable<T>::printSelf(ostream& os) const {
 
 template<class T>
 Callable<T>::Callable() :
+        Runnable(),
         finishedMutex(PTHREAD_MUTEX_INITIALIZER),
         finishedCond(PTHREAD_COND_INITIALIZER),
         finished(false) {
@@ -45,12 +49,17 @@ bool Callable<T>::getFinished() {
 }
 
 template<class T>
-T* Callable<T>::waitAndGetResult() {
+void Callable<T>::waitToFinish() {
     pthread_mutex_lock(&finishedMutex);
     while (!finished) {
         pthread_cond_wait(&finishedCond, &finishedMutex);
     }
     pthread_mutex_unlock(&finishedMutex);
+}
+
+template<class T>
+T* Callable<T>::waitAndGetResult() {
+    waitToFinish();
     return getResultInternal();
 }
 
@@ -59,3 +68,9 @@ ostream& operator<<(ostream& os, const Callable<T>& toPrint) {
     toPrint.printSelf(os);
     return os;
 }
+
+//Explicitly compile the needed template implementations
+template class Callable<uint64_t> ;
+template class Callable<void> ;
+template class Callable<HashTable const> ;
+template class Callable<ResultContainer> ;

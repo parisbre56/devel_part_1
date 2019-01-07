@@ -57,6 +57,7 @@ public:
     const Relation& getRelation() const;
 
     Result* getNext() const;
+    void setNext(Result* next);
     /** Returns the last segment for this chain of results. **/
     Result* getLastSegment();
     /** Return the first non-full segment. Or the last segment if none exist. **/

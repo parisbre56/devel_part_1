@@ -17,7 +17,7 @@ class Callable;
 #include "Runnable.h"
 
 template<class T>
-class Callable: Runnable {
+class Callable: public Runnable {
 protected:
     pthread_mutex_t finishedMutex;
     pthread_cond_t finishedCond;
@@ -37,7 +37,7 @@ public:
     void run() final;
     bool getFinished();
     T* waitAndGetResult();
-
+    void waitToFinish();
     template<class F>
     friend std::ostream& operator<<(std::ostream& os,
                                     const Callable<F>& toPrint);

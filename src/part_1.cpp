@@ -21,6 +21,8 @@
 #include "TableLoader.h"
 #include "Metadata.h"
 
+#include <sys/time.h>
+
 using namespace std;
 
 enum ParseState {
@@ -109,7 +111,8 @@ int main(int argc, char* argv[]) {
 
     try {
         consoleOutput.errorOutput() << "PART_1 EXECUTION STARTED" << endl;
-        clock_t start = clock();
+        struct timespec start;
+        clock_gettime(CLOCK_MONOTONIC, &start);
 
         TableLoader tableLoader(100);
 
@@ -147,7 +150,8 @@ int main(int argc, char* argv[]) {
 
         //CO_IFDEBUG(consoleOutput, "Loaded tables " << tableLoader);
 
-        clock_t joinStart = clock();
+        struct timespec joinStart;
+        clock_gettime(CLOCK_MONOTONIC, &joinStart);
 
         //For ease of testing, get input from arguments
         Metadata metadata(tableLoader, 100);
@@ -187,19 +191,23 @@ int main(int argc, char* argv[]) {
             CO_IFDEBUG(consoleOutput, "Finished processing cin");
         }
 
-        clock_t end = clock();
+        struct timespec end;
+        clock_gettime(CLOCK_MONOTONIC, &end);
 
         consoleOutput.errorOutput() << "PART_1 EXECUTION ENDED" << endl;
         consoleOutput.errorOutput() << "Load Time: "
-                                    << ((joinStart - start)
-                                        / (double) CLOCKS_PER_SEC)
+                                    << ((joinStart.tv_sec - start.tv_sec)
+            + ((joinStart.tv_nsec - start.tv_nsec) / 1000000000.0))
                                     << endl;
         consoleOutput.errorOutput() << "Join Time: "
-                                    << ((end - joinStart)
-                                        / (double) CLOCKS_PER_SEC)
+                                    << ((end.tv_sec - joinStart.tv_sec)
+                                        + ((end.tv_nsec - joinStart.tv_nsec)
+                                           / 1000000000.0))
                                     << endl;
         consoleOutput.errorOutput() << "Total Time: "
-                                    << ((end - start) / (double) CLOCKS_PER_SEC)
+                                    << ((end.tv_sec - start.tv_sec)
+                                        + ((end.tv_nsec - start.tv_nsec)
+                                           / 1000000000.0))
                                     << endl;
 
         return 0;

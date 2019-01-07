@@ -23,6 +23,7 @@ class Join;
 #include "JoinOrder.h"
 #include "JoinOrderContainer.h"
 #include "Executor.h"
+#include "JoinJob.h"
 
 class Join {
 protected:
@@ -42,12 +43,14 @@ protected:
     MultipleColumnStats** tableStats;
     JoinOrderContainer* oldOrder;
     JoinOrderContainer* newOrder;
+    uint32_t buckets;
+    JoinJob** joinJobs;
 
     Relation loadRelation(const uint32_t tableReference,
                           const uint32_t colsToProcessNum,
                           const TableColumn* const colsToProcess) const;
     ResultContainer radixHashJoin(const Relation& relR,
-                                  const Relation& relS) const;
+                                  const Relation& relS);
     void storeResut(ResultContainer* newResult);
     void fillSums(JoinSumResult& retVal) const;
     void fillSumsFromRelation(JoinSumResult& retVal,
@@ -57,7 +60,6 @@ protected:
     void fillSumTables(const uint64_t* * const sumCols,
                        uint32_t * const sumTable) const;
     unsigned char getBitmaskSize(const uint64_t rows) const;
-    uint32_t getBucketAndChainBuckets(const uint64_t tuplesInBucket) const;
     MultipleColumnStats loadStats(const uint32_t table) const;
     /** Handle joining two tables. Two first args are the retvals **/
     void updateJoinStats(MultipleColumnStats& newStat,

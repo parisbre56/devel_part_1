@@ -69,6 +69,10 @@ Result* Result::getNext() const {
     return next;
 }
 
+void Result::setNext(Result* next) {
+    this->next = next;
+}
+
 Result* Result::getLastSegment() {
     Result* retVal = this;
     while (retVal->next != nullptr) {

@@ -9,15 +9,16 @@
 
 using namespace std;
 
-HistogramJob::HistogramJob(Relation& relation,
-                           HashFunction& hashFunction,
+HistogramJob::HistogramJob(const Relation& relation,
+                           const HashFunction& hashFunction,
                            uint64_t segmentStartInclusive,
                            uint64_t segmentSize) :
+        Callable(),
         relation(relation),
         hashFunction(hashFunction),
         segmentStartInclusive(segmentStartInclusive),
         segmentSize(segmentSize),
-        result(new uint64_t[hashFunction.getBuckets()]) {
+        result(new uint64_t[hashFunction.getBuckets()] {/* init to 0 */}) {
 
 }
 
@@ -28,7 +29,9 @@ HistogramJob::~HistogramJob() {
 }
 
 void HistogramJob::printSelf(ostream& os) const {
-    os << "[HistogramJob relation="
+    os << "[HistogramJob finished="
+       << finished
+       << ", relation="
        << relation
        << ", hashFunction="
        << hashFunction
@@ -58,7 +61,7 @@ uint64_t* HistogramJob::getResultInternal() const {
 }
 
 void HistogramJob::runInternal() {
-    unsigned long int segmentEndExclusive = segmentStartInclusive + segmentSize;
+    uint64_t segmentEndExclusive = segmentStartInclusive + segmentSize;
     for (uint64_t i = segmentStartInclusive; i < segmentEndExclusive; ++i) {
         const Tuple& toCheck = relation.getTuple(i);
         uint32_t currHash = hashFunction.applyHash(toCheck.getPayload(0));
@@ -66,11 +69,11 @@ void HistogramJob::runInternal() {
     }
 }
 
-const HashFunction&& HistogramJob::getHashFunction() const {
+const HashFunction& HistogramJob::getHashFunction() const {
     return hashFunction;
 }
 
-const Relation&& HistogramJob::getRelation() const {
+const Relation& HistogramJob::getRelation() const {
     return relation;
 }
 

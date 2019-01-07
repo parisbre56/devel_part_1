@@ -16,7 +16,7 @@ using namespace std;
 
 HashTable::HashTable(Executor& executor,
                      const Relation& relation,
-                     HashFunction& hashFunction) :
+                     const HashFunction& hashFunction) :
         executor(executor),
         buckets(hashFunction.getBuckets()),
         numTuples(relation.getNumTuples()),
@@ -60,12 +60,14 @@ HashTable::HashTable(Executor& executor,
 
     //While we wait for the executor to run the jobs, this thread will process the remainder
     //Special case: if numTuples is less than segment size, then no job will be created.
-    for (uint64_t i = segments * HASHTABLE_H_SEGMENT_SIZE; i < numTuples; ++i) {
+    const uint64_t remainderStart = segments * HASHTABLE_H_SEGMENT_SIZE;
+    const Tuple* const * const relTuples = relation.getTuples();
+    for (uint64_t i = remainderStart; i < numTuples; ++i) {
         CO_IFDEBUG(consoleOutput, "Processing tuple " << i);
-        const Tuple& toCheck = relation.getTuple(i);
-        CO_IFDEBUG(consoleOutput, i << ":" << toCheck);
+        const Tuple* const toCheck = relTuples[i];
+        CO_IFDEBUG(consoleOutput, i << ":" << *toCheck);
 
-        uint32_t currHash = hashFunction.applyHash(toCheck.getPayload(0));
+        uint32_t currHash = hashFunction.applyHash(toCheck->getPayload(0));
         CO_IFDEBUG(consoleOutput, "Assigned to bucket " << currHash);
         histogram[currHash]++;
     }
@@ -89,24 +91,7 @@ HashTable::HashTable(Executor& executor,
                        "\t[bucket=" << i << ", size=" << histogram[i] << "]");
         }
     }
-    //FIXME Need this after pSum, use new table instead of pSum
-    //First compute pSum then memcpy that to a new array and increment that as you go
-    partitionJobs = new PartitionJob*[segments];
-    for (uint64_t currJobIndex = 0; currJobIndex < segments; ++currJobIndex) {
-        HistogramJob& currJob = *(histogramJobs[currJobIndex]);
-        uint64_t* currResult = currJob.waitAndGetResult();
-        partitionJobs[currJobIndex] = new PartitionJob(currJob,
-                                                       histogram,
-                                                       pSum,
-                                                       orderedTuples);
-        CO_IFDEBUG(consoleOutput,
-                   "Processing result for partition job creation [currJobIndex="<<currJobIndex<<", currJob="<<currJob<<"]");
-        for (uint64_t currBucketIndex = 0; currBucketIndex < buckets;
-                ++currBucketIndex) {
-            pSum[currBucketIndex] += currResult[currBucketIndex];
-        }
-    }
-
+    uint64_t segmentPSum[buckets];
     CO_IFDEBUG(consoleOutput, "Generating pSum");
     {
         uint64_t prevSum = 0;
@@ -114,35 +99,63 @@ HashTable::HashTable(Executor& executor,
             CO_IFDEBUG(consoleOutput,
                        "\t[bucket=" << i << ", pSum=" << prevSum << "]");
             pSum[i] = prevSum;
+            segmentPSum[i] = prevSum;
             prevSum += histogram[i];
-            histogram[i] = 0; //Just so that we don't create a new array, we reuse the histogram array
         }
     }
     CO_IFDEBUG(consoleOutput, "pSum generated");
-
-    CO_IFDEBUG(consoleOutput, "Copying Tuples");
-    for (uint64_t i = 0; i < numTuples; ++i) {
-        CO_IFDEBUG(consoleOutput, "Processing tuple " << i);
-        const Tuple& toCheck = relation.getTuple(i);
-        CO_IFDEBUG(consoleOutput, i << ":" << toCheck);
-
-        uint32_t currHash = hashFunction.applyHash(toCheck.getPayload(0));
+    //Create partition jobs
+    partitionJobs = new PartitionJob*[segments];
+    for (uint64_t currJobIndex = 0; currJobIndex < segments; ++currJobIndex) {
+        HistogramJob& currJob = *(histogramJobs[currJobIndex]);
+        uint64_t* currResult = currJob.waitAndGetResult();
         CO_IFDEBUG(consoleOutput,
-                   "Copying to bucket " << currHash << " position " << histogram[currHash]);
-        orderedTuples[pSum[currHash] + histogram[currHash]] = &toCheck;
-        histogram[currHash]++;
+                   "Processing result for partition job creation [currJobIndex="<<currJobIndex<<"]");
+        partitionJobs[currJobIndex] = new PartitionJob(currJob,
+                                                       segmentPSum,
+                                                       orderedTuples);
+        executor.addToQueue(partitionJobs[currJobIndex]);
+        for (uint64_t currBucketIndex = 0; currBucketIndex < buckets;
+                ++currBucketIndex) {
+            segmentPSum[currBucketIndex] += currResult[currBucketIndex];
+        }
+    }
+
+    //Like before, the remainder is processed by this thread while we wait for the others to finish
+    CO_IFDEBUG(consoleOutput, "Copying Tuples");
+    for (uint64_t i = remainderStart; i < numTuples; ++i) {
+        CO_IFDEBUG(consoleOutput, "Processing tuple " << i);
+        const Tuple* const toCheck = relTuples[i];
+        CO_IFDEBUG(consoleOutput, i << ":" << *toCheck);
+        const uint32_t currHash = hashFunction.applyHash(toCheck->getPayload(0));
+        uint64_t posToAdd = segmentPSum[currHash];
+        CO_IFDEBUG(consoleOutput,
+                   "Copying to bucket " << currHash << " position " << posToAdd << ":" << (posToAdd-pSum[currHash]));
+        orderedTuples[posToAdd] = toCheck;
+        segmentPSum[currHash]++;
+    }
+    CO_IFDEBUG(consoleOutput, "Waiting for partition jobs to finish");
+    for (uint64_t currJobIndex = 0; currJobIndex < segments; ++currJobIndex) {
+        partitionJobs[currJobIndex]->waitToFinish();
+        CO_IFDEBUG(consoleOutput,
+                   "Job finished [currJobIndex="<<currJobIndex<<", currJob="<<(*(partitionJobs[currJobIndex]))<<"]");
     }
     CO_IFDEBUG(consoleOutput, "Tuples copied");
+
 
     //Delete jobs to free up space
     for (uint64_t i = 0; i < segments; ++i) {
         delete histogramJobs[i];
+        histogramJobs[i] = nullptr;
     }
     delete[] histogramJobs;
+    histogramJobs = nullptr;
     for (uint64_t i = 0; i < segments; ++i) {
         delete partitionJobs[i];
+        partitionJobs[i] = nullptr;
     }
     delete[] partitionJobs;
+    partitionJobs = nullptr;
 }
 
 HashTable::~HashTable() {
@@ -191,7 +204,7 @@ const Tuple * const * HashTable::getBucket(uint32_t bucket) const {
                             + to_string(buckets)
                             + "]");
     }
-    return orderedTuples + pSum[bucket];
+    return &(orderedTuples[pSum[bucket]]);
 }
 
 const Tuple& HashTable::getTuple(uint32_t bucket, uint64_t index) const {
@@ -225,6 +238,10 @@ size_t HashTable::getSizePayloads() const {
 
 uint32_t HashTable::getSizeTableRows() const {
     return sizeTableRows;
+}
+
+const uint64_t HashTable::getNumTuples() const {
+    return numTuples;
 }
 
 std::ostream& operator<<(std::ostream& os, const HashTable& toPrint) {

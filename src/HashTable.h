@@ -20,13 +20,14 @@ class HashTable;
 #include "HashFunction.h"
 #include "Executor.h"
 #include "HistogramJob.h"
+#include "PartitionJob.h"
 
 class HashTable {
 protected:
     Executor& executor;
     const uint32_t buckets;
     const uint64_t numTuples;
-    HashFunction& hashFunction;
+    const HashFunction& hashFunction;
     uint64_t * const histogram;
     uint64_t * const pSum;
     const uint32_t sizeTableRows;
@@ -49,7 +50,7 @@ public:
      * and error info. **/
     HashTable(Executor& executor,
               const Relation& relation,
-              HashFunction& hashFunction);
+              const HashFunction& hashFunction);
 
     HashTable(const HashTable& toCopy) = delete;
     HashTable& operator=(const HashTable& toCopy) = delete;
@@ -64,6 +65,7 @@ public:
 
     size_t getSizePayloads() const;
     uint32_t getSizeTableRows() const;
+    const uint64_t getNumTuples() const;
 
     friend std::ostream& operator<<(std::ostream& os, const HashTable& toPrint);
 };

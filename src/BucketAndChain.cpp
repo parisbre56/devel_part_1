@@ -37,10 +37,10 @@ BucketAndChain::BucketAndChain(const HashTable& hashTable,
     CO_IFDEBUG(consoleOutput, "Starting split");
     for (uint32_t i = 0; i < tuplesInBucket; ++i) {
         CO_IFDEBUG(consoleOutput, "Processing tuple " << i);
-        const Tuple& currTuple = *(referenceTable[i]);
-        CO_IFDEBUG(consoleOutput, i << ":" << currTuple);
+        const Tuple* const currTuple = referenceTable[i];
+        CO_IFDEBUG(consoleOutput, i << ":" << *currTuple);
 
-        uint32_t currHash = hashFunction.applyHash(currTuple.getPayload(0));
+        uint32_t currHash = hashFunction.applyHash(currTuple->getPayload(0));
         CO_IFDEBUG(consoleOutput, "Assigned to subBucket " << currHash);
 
         //If this is the first time the bucket is used, then the end of the chain will
@@ -55,9 +55,9 @@ BucketAndChain::BucketAndChain(const HashTable& hashTable,
 
 }
 
-void BucketAndChain::join(HashTable& hashToJoin,
-                          uint32_t bucketToJoin,
-                          ResultContainer& resultAggregator) {
+void BucketAndChain::join(const HashTable& hashToJoin,
+                          const uint32_t bucketToJoin,
+                          ResultContainer& resultAggregator) const {
     ConsoleOutput consoleOutput("BucketAndChain::join");
     CO_IFDEBUG(consoleOutput,
                "Joining with bucket " << bucketToJoin << " of given hashTable");
