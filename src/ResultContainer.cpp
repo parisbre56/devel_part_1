@@ -220,6 +220,7 @@ void ResultContainer::mergeResult(ResultContainer&& toMerge) {
     end->setNext(toMerge.start);
     toMerge.end->getLastSegment()->setNext(oldEndNext);
     toMerge.start = nullptr;
+    resultCount += toMerge.resultCount;
 }
 
 std::ostream& operator<<(std::ostream& os, const ResultContainer& toPrint) {
