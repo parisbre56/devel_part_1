@@ -18,7 +18,7 @@ uint32_t getBucketAndChainBuckets(const uint64_t tuplesInBucket);
 JoinJob::JoinJob(HashTableJob& rHash,
                  HashTableJob& sHash,
                  const uint32_t bucket,
-                 bool* usedRows) :
+                 const bool* usedRows) :
         rHash(rHash),
         sHash(sHash),
         bucket(bucket),

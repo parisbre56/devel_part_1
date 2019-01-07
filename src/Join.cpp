@@ -760,29 +760,29 @@ ResultContainer Join::radixHashJoin(const Relation& relR,
     //CO_IFDEBUG(consoleOutput, "rHash=" << rHash);
     //CO_IFDEBUG(consoleOutput, "sHash=" << sHash);
 
-    bool usedRows[tableNum] {/*init to false*/};
+    ResultContainer retResult(0, relR.getSizeTableRows(), 0);
     for (uint32_t i = 0; i < tableNum; ++i) {
         if (relR.getUsedRow(i) || relS.getUsedRow(i)) {
-            usedRows[i] = true;
+            retResult.setUsedRow(i);
         }
     }
     buckets = bitmask.getBuckets();
     joinJobs = new JoinJob*[buckets];
     for (uint32_t i = 0; i < buckets; ++i) {
-        joinJobs[i] = new JoinJob(rHash, sHash, i, usedRows);
+        joinJobs[i] = new JoinJob(rHash, sHash, i, retResult.getUsedRows());
         executor.addToQueue(joinJobs[i]);
     }
-    ResultContainer retResult(move(*(joinJobs[0]->waitAndGetResult())));
-    delete joinJobs[0];
-    joinJobs[0] = nullptr;
-    for (uint32_t i = 1; i < buckets; ++i) {
+    for (uint32_t i = 0; i < buckets; ++i) {
         ResultContainer& toMerge = *(joinJobs[i]->waitAndGetResult());
         if (toMerge.getResultCount() == 0) {
             CO_IFDEBUG(consoleOutput,
                        "Skipping job with empty result [bucket="<<i<<", joinJob="<<*(joinJobs[i])<<", toMerge="<<toMerge<<"]");
-            continue;
         }
-        retResult.mergeResult(move(toMerge));
+        else {
+            retResult.mergeResult(move(toMerge));
+        }
+        delete joinJobs[i];
+        joinJobs[i] = nullptr;
     }
     delete[] joinJobs;
     joinJobs = nullptr;

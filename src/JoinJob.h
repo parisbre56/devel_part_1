@@ -18,7 +18,7 @@ protected:
     HashTableJob& rHash;
     HashTableJob& sHash;
     const uint32_t bucket;
-    bool* const usedRows;
+    const bool* const usedRows;
     ResultContainer* result;
 
     void printSelf(std::ostream& os) const;
@@ -28,7 +28,7 @@ public:
     JoinJob(HashTableJob& rHash,
             HashTableJob& sHash,
             const uint32_t bucket,
-            bool* usedRows);
+            const bool* usedRows);
     JoinJob(const JoinJob& toCopy) = delete;
     JoinJob(JoinJob&& toMove) = delete;
     JoinJob& operator=(const JoinJob& toCopy) = delete;

@@ -19,13 +19,13 @@ using namespace std;
 ResultContainer::ResultContainer(uint64_t maxExpectedResults,
                                  uint32_t sizeTableRows,
                                  size_t sizePayloads,
-                                 bool* usedRows) :
+                                 const bool* usedRows) :
         sizeTableRows(sizeTableRows),
         sizePayloads(sizePayloads),
         resultCount(0),
         usedRows(
                 (usedRows == nullptr) ? (new bool[sizeTableRows] { /*init to false*/}) :
-                                        (usedRows)),
+                                        ((bool*) usedRows)), //FIXME must be very careful not to edit that, since it's supposed to be constant. Find better way to do it
         manageUsedRows(usedRows == nullptr) {
     const size_t sizeOfTuple = sizeof(Tuple)
                                + sizeof(Tuple*)

@@ -35,7 +35,7 @@ public:
     ResultContainer(uint64_t blockSize,
                     uint32_t sizeTableRows,
                     size_t sizePayloads,
-                    bool* usedRows = nullptr);
+                    const bool* usedRows = nullptr);
     ResultContainer(const ResultContainer& toCopy);
     ResultContainer(ResultContainer&& toMove);
     ResultContainer& operator=(const ResultContainer& toCopy);
