@@ -24,7 +24,7 @@ protected:
     bool finished;
 
     virtual void printSelf(std::ostream& os) const;
-    virtual T* getResultInternal() const = 0;
+    virtual T* getResultInternal() = 0;
     virtual void runInternal() = 0;
 public:
     Callable();

@@ -71,7 +71,7 @@ ostream& operator<<(ostream& os, const Callable<T>& toPrint) {
 }
 
 //Explicitly compile the needed template implementations
-template class Callable<uint64_t> ;
+template class Callable<const uint64_t> ;
 template class Callable<void> ;
 template class Callable<HashTable const> ;
 template class Callable<ResultContainer> ;

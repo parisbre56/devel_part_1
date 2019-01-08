@@ -22,7 +22,7 @@ protected:
     HashTable* hashTable;
 
     void printSelf(std::ostream& os) const;
-    const HashTable* getResultInternal() const;
+    const HashTable* getResultInternal();
     void runInternal();
 public:
     HashTableJob(Executor& executor,

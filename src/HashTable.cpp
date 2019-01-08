@@ -74,7 +74,7 @@ HashTable::HashTable(Executor& executor,
     //Aggregate segment histograms and generate copy jobs
     for (uint64_t currJobIndex = 0; currJobIndex < segments; ++currJobIndex) {
         HistogramJob& currJob = *(histogramJobs[currJobIndex]);
-        uint64_t* currResult = currJob.waitAndGetResult();
+        const uint64_t* currResult = currJob.waitAndGetResult();
         CO_IFDEBUG(consoleOutput,
                    "Processing result for histogram [currJobIndex="<<currJobIndex<<", currJob="<<currJob<<"]");
         for (uint64_t currBucketIndex = 0; currBucketIndex < buckets;
@@ -108,7 +108,7 @@ HashTable::HashTable(Executor& executor,
     partitionJobs = new PartitionJob*[segments];
     for (uint64_t currJobIndex = 0; currJobIndex < segments; ++currJobIndex) {
         HistogramJob& currJob = *(histogramJobs[currJobIndex]);
-        uint64_t* currResult = currJob.waitAndGetResult();
+        const uint64_t* currResult = currJob.waitAndGetResult();
         CO_IFDEBUG(consoleOutput,
                    "Processing result for partition job creation [currJobIndex="<<currJobIndex<<"]");
         partitionJobs[currJobIndex] = new PartitionJob(currJob,

@@ -24,6 +24,7 @@ class Join;
 #include "JoinOrderContainer.h"
 #include "Executor.h"
 #include "JoinJob.h"
+#include "SumJob.h"
 
 class Join {
 protected:
@@ -46,6 +47,7 @@ protected:
     JoinOrderContainer* newOrder;
     uint32_t buckets;
     JoinJob** joinJobs;
+    SumJob** sumJobs;
 
     Relation loadRelation(const uint32_t tableReference,
                           const uint32_t colsToProcessNum,
@@ -53,7 +55,7 @@ protected:
     ResultContainer radixHashJoin(const Relation& relR,
                                   const Relation& relS);
     void storeResut(ResultContainer* newResult);
-    void fillSums(JoinSumResult& retVal) const;
+    void fillSums(JoinSumResult& retVal);
     void fillSumsFromRelation(JoinSumResult& retVal,
                               const Relation& currRel,
                               const uint64_t * const * const sumCols,

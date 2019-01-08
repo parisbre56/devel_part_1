@@ -45,7 +45,7 @@ void HashTableJob::printSelf(ostream& os) const {
     os << "]";
 }
 
-const HashTable* HashTableJob::getResultInternal() const {
+const HashTable* HashTableJob::getResultInternal() {
     return hashTable;
 }
 

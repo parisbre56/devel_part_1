@@ -21,7 +21,7 @@ protected:
     JoinSumResult* result;
 
     void printSelf(std::ostream& os) const;
-    JoinSumResult* getResultInternal() const;
+    JoinSumResult* getResultInternal();
     void runInternal();
 public:
     /** Takes ownsership of join (deletes it at destruction) **/

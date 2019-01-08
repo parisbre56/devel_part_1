@@ -22,7 +22,7 @@ protected:
     uint64_t* segmentPSum;
 
     void printSelf(std::ostream& os) const;
-    void * getResultInternal() const;
+    void * getResultInternal();
     void runInternal();
 public:
     PartitionJob(const HistogramJob& histogramJob,

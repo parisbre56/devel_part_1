@@ -56,7 +56,7 @@ void HistogramJob::printSelf(ostream& os) const {
     os << "]";
 }
 
-uint64_t* HistogramJob::getResultInternal() const {
+const uint64_t* HistogramJob::getResultInternal() {
     return result;
 }
 

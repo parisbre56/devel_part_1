@@ -52,7 +52,7 @@ void PartitionJob::printSelf(ostream& os) const {
     os << "]";
 }
 
-void * PartitionJob::getResultInternal() const {
+void * PartitionJob::getResultInternal() {
     return nullptr;
 }
 

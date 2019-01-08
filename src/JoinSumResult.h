@@ -26,8 +26,8 @@ public:
     virtual ~JoinSumResult();
 
     uint32_t getNumOfSums() const;
-    uint64_t getSum(uint32_t sumNum) const;
-    uint64_t addSum(uint32_t sumNum, uint64_t toAdd);
+    uint64_t getSum(const uint32_t sumNum) const;
+    uint64_t addSum(const uint32_t sumNum, const uint64_t toAdd);
     bool getHasResults() const;
     void setHasResults();
 

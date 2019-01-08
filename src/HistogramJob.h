@@ -15,7 +15,7 @@ class HistogramJob;
 #include "Relation.h"
 #include "HashFunction.h"
 
-class HistogramJob: public Callable<uint64_t> {
+class HistogramJob: public Callable<const uint64_t> {
 protected:
     const Relation& relation;
     const HashFunction& hashFunction;
@@ -25,7 +25,7 @@ protected:
     uint64_t* result;
 
     void printSelf(std::ostream& os) const;
-    uint64_t* getResultInternal() const;
+    const uint64_t* getResultInternal();
     void runInternal();
 public:
     HistogramJob(const Relation& relation,

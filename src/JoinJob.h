@@ -22,7 +22,7 @@ protected:
     ResultContainer* result;
 
     void printSelf(std::ostream& os) const;
-    ResultContainer* getResultInternal() const;
+    ResultContainer* getResultInternal();
     void runInternal();
 public:
     JoinJob(HashTableJob& rHash,

@@ -41,7 +41,8 @@ Join::Join(const TableLoader& tableLoader,
         oldOrder(nullptr),
         newOrder(nullptr),
         buckets(0),
-        joinJobs(nullptr) {
+        joinJobs(nullptr),
+        sumJobs(nullptr) {
 
 }
 
@@ -101,6 +102,14 @@ Join::~Join() {
             }
         }
         delete[] joinJobs;
+    }
+    if (sumJobs != nullptr) {
+        for (uint32_t i = 0; i < sumColumnNum; ++i) {
+            if (sumJobs[i] != nullptr) {
+                delete sumJobs[i];
+            }
+        }
+        delete[] sumJobs;
     }
 }
 
@@ -665,24 +674,38 @@ void Join::fillSumTables(const uint64_t* * const sumCols,
     }
 }
 
-void Join::fillSums(JoinSumResult& retVal) const {
+void Join::fillSums(JoinSumResult& retVal) {
     if (resultContainers[0]->getResultCount() == 0) {
+        return;
+    }
+    //Start from the first non-empty results
+    const Result* startResult = resultContainers[0]->getFirstResultBlock();
+    while (startResult != nullptr
+           && startResult->getRelation().getNumTuples() == 0) {
+        startResult = startResult->getNext();
+    }
+    if (startResult == nullptr) {
         return;
     }
     retVal.setHasResults();
 
-    const uint64_t * sumCols[sumColumnNum];
-    uint32_t sumTable[sumColumnNum];
-    fillSumTables(sumCols, sumTable);
-
-    const Result* currResult = resultContainers[0]->getFirstResultBlock();
-    while (currResult != nullptr) {
-        fillSumsFromRelation(retVal,
-                             currResult->getRelation(),
-                             sumCols,
-                             sumTable);
-        currResult = currResult->getNext();
+    //Recursively compute the sum for each result
+    sumJobs = new SumJob*[sumColumnNum] {/*init to nullptr*/};
+    for (uint32_t sumIndex = 0; sumIndex < sumColumnNum; ++sumIndex) {
+        const TableColumn& currSumColumn = *(sumColumns[sumIndex]);
+        sumJobs[sumIndex] = new SumJob(joinExecutor,
+                                       *startResult,
+                                       currSumColumn.getTableNum(),
+                                       tableLoader.getTable(tables[currSumColumn.getTableNum()]).getCol(currSumColumn.getTableCol()));
+        joinExecutor.addToQueue(sumJobs[sumIndex]);
     }
+    for (uint32_t sumIndex = 0; sumIndex < sumColumnNum; ++sumIndex) {
+        retVal.addSum(sumIndex, *(sumJobs[sumIndex]->waitAndGetResult()));
+        delete sumJobs[sumIndex];
+        sumJobs[sumIndex] = nullptr;
+    }
+    delete[] sumJobs;
+    sumJobs = nullptr;
 }
 
 void Join::fillSumsFromRelation(JoinSumResult& retVal,
@@ -773,7 +796,7 @@ ResultContainer Join::radixHashJoin(const Relation& relR,
         }
     }
     buckets = bitmask.getBuckets();
-    joinJobs = new JoinJob*[buckets];
+    joinJobs = new JoinJob*[buckets] {/* init to nullptr */};
     for (uint32_t i = 0; i < buckets; ++i) {
         joinJobs[i] = new JoinJob(rHash, sHash, i, retResult.getUsedRows());
         joinExecutor.addToQueue(joinJobs[i]);

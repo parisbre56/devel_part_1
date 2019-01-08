@@ -47,7 +47,7 @@ JoinSumResult::~JoinSumResult() {
 uint32_t JoinSumResult::getNumOfSums() const {
     return numOfSums;
 }
-uint64_t JoinSumResult::getSum(uint32_t sumNum) const {
+uint64_t JoinSumResult::getSum(const uint32_t sumNum) const {
     if (sumNum >= numOfSums) {
         throw runtime_error("getSum: out of bounds [sumNum="
                             + to_string(sumNum)
@@ -57,7 +57,7 @@ uint64_t JoinSumResult::getSum(uint32_t sumNum) const {
     }
     return sums[sumNum];
 }
-uint64_t JoinSumResult::addSum(uint32_t sumNum, uint64_t toAdd) {
+uint64_t JoinSumResult::addSum(const uint32_t sumNum, const uint64_t toAdd) {
     if (sumNum >= numOfSums) {
         throw runtime_error("getSum: out of bounds [sumNum="
                             + to_string(sumNum)

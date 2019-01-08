@@ -38,7 +38,7 @@ void BatchJoinJob::printSelf(std::ostream& os) const {
     }
     os << "]";
 }
-JoinSumResult* BatchJoinJob::getResultInternal() const {
+JoinSumResult* BatchJoinJob::getResultInternal() {
     return result;
 }
 void BatchJoinJob::runInternal() {

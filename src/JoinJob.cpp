@@ -52,7 +52,7 @@ void JoinJob::printSelf(std::ostream& os) const {
     }
     os << "]";
 }
-ResultContainer* JoinJob::getResultInternal() const {
+ResultContainer* JoinJob::getResultInternal() {
     return result;
 }
 void JoinJob::runInternal() {
