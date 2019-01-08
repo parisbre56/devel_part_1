@@ -13,23 +13,30 @@ using namespace std;
 
 Metadata::Metadata(const TableLoader& tableLoader, uint32_t arraySize) :
         tableLoader(tableLoader),
-        batch(new Join*[arraySize]),
+        batch(new BatchJoinJob*[arraySize]),
         activeJoin(nullptr),
         arraySize(arraySize),
         joinsInBatch(0),
         hashExecutor(new Executor(METADATA_H_THREAD_NUM_HASH,
-                                  METADATA_H_QUEUE_SIZE)),
+        METADATA_H_QUEUE_SIZE)),
         joinExecutor(new Executor(METADATA_H_THREAD_NUM_JOIN,
-                                  METADATA_H_QUEUE_SIZE)) {
+        METADATA_H_QUEUE_SIZE)),
+        batchExecutor(new Executor(METADATA_H_THREAD_NUM_BATCH,
+        METADATA_H_QUEUE_SIZE_BATCH)) {
 
 }
 
 void Metadata::resetBatch() {
     for (uint32_t i = 0; i < joinsInBatch; ++i) {
-        delete batch[i];
+        if (batch[i] != nullptr) {
+            delete batch[i];
+        }
     }
     joinsInBatch = 0;
-    activeJoin = nullptr;
+    if (activeJoin != nullptr) {
+        delete activeJoin;
+        activeJoin = nullptr;
+    }
 }
 
 Metadata::~Metadata() {
@@ -37,6 +44,9 @@ Metadata::~Metadata() {
         resetBatch();
         delete[] batch;
     }
+    delete hashExecutor;
+    delete joinExecutor;
+    delete batchExecutor;
 }
 
 void Metadata::addTable(uint32_t table) {
@@ -78,20 +88,21 @@ void Metadata::startJoin() {
         throw runtime_error("startJoin: limit reached, can't add more joins");
     }
     activeJoin = new Join(tableLoader, *hashExecutor, *joinExecutor, arraySize);
-    batch[joinsInBatch++] = activeJoin;
+    batch[joinsInBatch++] = new BatchJoinJob(activeJoin);
 }
 void Metadata::endJoin() {
     if (activeJoin == nullptr) {
         throw runtime_error("endJoin: No join currently active");
     }
     activeJoin = nullptr;
+    batchExecutor->addToQueue(batch[joinsInBatch - 1]);
 }
 void Metadata::endBatch() {
     if (activeJoin != nullptr) {
         endJoin();
     }
     for (uint32_t i = 0; i < joinsInBatch; ++i) {
-        JoinSumResult joinSums(batch[i]->performJoin());
+        JoinSumResult& joinSums = *(batch[i]->waitAndGetResult());
         uint32_t numSums = joinSums.getNumOfSums();
         if (joinSums.getHasResults()) {
             for (uint32_t j = 0; j < numSums; ++j) {
@@ -108,6 +119,8 @@ void Metadata::endBatch() {
             }
             cout << endl;
         }
+        delete batch[i];
+        batch[i] = nullptr;
     }
     resetBatch();
 }

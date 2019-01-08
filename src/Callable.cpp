@@ -9,6 +9,7 @@
 
 #include "HashTable.h"
 #include "ResultContainer.h"
+#include "JoinSumResult.h"
 
 using namespace std;
 
@@ -74,3 +75,4 @@ template class Callable<uint64_t> ;
 template class Callable<void> ;
 template class Callable<HashTable const> ;
 template class Callable<ResultContainer> ;
+template class Callable<JoinSumResult> ;

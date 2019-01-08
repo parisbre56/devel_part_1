@@ -12,20 +12,24 @@ class Metadata;
 #include "TableLoader.h"
 #include "Join.h"
 #include "Executor.h"
+#include "BatchJoinJob.h"
 
 #define METADATA_H_THREAD_NUM_JOIN 10
 #define METADATA_H_THREAD_NUM_HASH 10
-#define METADATA_H_QUEUE_SIZE 1000
+#define METADATA_H_QUEUE_SIZE 100000
+#define METADATA_H_THREAD_NUM_BATCH 10
+#define METADATA_H_QUEUE_SIZE_BATCH 100
 
 class Metadata {
 protected:
     const TableLoader& tableLoader;
-    Join** batch;
+    BatchJoinJob** batch;
     Join* activeJoin;
     const uint32_t arraySize;
     uint32_t joinsInBatch;
     Executor* hashExecutor;
     Executor* joinExecutor;
+    Executor* batchExecutor;
 
     void resetBatch();
 
