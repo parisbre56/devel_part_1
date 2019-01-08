@@ -22,6 +22,7 @@
 #include "Metadata.h"
 
 #include <sys/time.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -106,13 +107,13 @@ void parseSums(string::iterator& strIter,
                string& input);
 
 int main(int argc, char* argv[]) {
-    ConsoleOutput::debugEnabledDefault = true;
+    ConsoleOutput::debugEnabledDefault = false;
     ConsoleOutput consoleOutput("Main");
 
     try {
         consoleOutput.errorOutput() << "PART_1 EXECUTION STARTED" << endl;
-        struct timespec start;
-        clock_gettime(CLOCK_MONOTONIC, &start);
+        timespec loadStart;
+        clock_gettime(CLOCK_MONOTONIC, &loadStart);
 
         TableLoader tableLoader(100);
 
@@ -147,14 +148,19 @@ int main(int argc, char* argv[]) {
 
             CO_IFDEBUG(consoleOutput, "Loaded tables from cin");
         }
+        timespec loadEnd;
+        clock_gettime(CLOCK_MONOTONIC, &loadEnd);
 
         //CO_IFDEBUG(consoleOutput, "Loaded tables " << tableLoader);
 
-        struct timespec joinStart;
+        //Start metadata outside of timing to give threads some time to load
+        Metadata metadata(tableLoader, 100);
+        sleep(1);
+
+        timespec joinStart;
         clock_gettime(CLOCK_MONOTONIC, &joinStart);
 
         //For ease of testing, get input from arguments
-        Metadata metadata(tableLoader, 100);
         ++currArg;
         if (currArg < argc) {
             string input;
@@ -191,13 +197,15 @@ int main(int argc, char* argv[]) {
             CO_IFDEBUG(consoleOutput, "Finished processing cin");
         }
 
-        struct timespec end;
+        timespec end;
         clock_gettime(CLOCK_MONOTONIC, &end);
 
         consoleOutput.errorOutput() << "PART_1 EXECUTION ENDED" << endl;
         consoleOutput.errorOutput() << "Load Time: "
-                                    << ((joinStart.tv_sec - start.tv_sec)
-            + ((joinStart.tv_nsec - start.tv_nsec) / 1000000000.0))
+                                    << ((loadEnd.tv_sec - loadStart.tv_sec)
+                                        + ((loadEnd.tv_nsec
+                                            - loadStart.tv_nsec)
+                                           / 1000000000.0))
                                     << endl;
         consoleOutput.errorOutput() << "Join Time: "
                                     << ((end.tv_sec - joinStart.tv_sec)
@@ -205,8 +213,8 @@ int main(int argc, char* argv[]) {
                                            / 1000000000.0))
                                     << endl;
         consoleOutput.errorOutput() << "Total Time: "
-                                    << ((end.tv_sec - start.tv_sec)
-                                        + ((end.tv_nsec - start.tv_nsec)
+                                    << ((end.tv_sec - loadStart.tv_sec)
+                                        + ((end.tv_nsec - loadStart.tv_nsec)
                                            / 1000000000.0))
                                     << endl;
 
