@@ -21,7 +21,7 @@ void HashFunctionModulo::write(std::ostream& os) const {
     os << "[HashFunctionModulo buckets=" << buckets << "]";
 }
 uint32_t HashFunctionModulo::applyHash(uint64_t value) const {
-    value ^= (value << 17) | (value >>> 16);
+    value ^= (value << 17) | (value >> 16);
     return value % buckets;
 }
 uint32_t HashFunctionModulo::getBuckets() const {
