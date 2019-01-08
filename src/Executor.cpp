@@ -97,7 +97,7 @@ Executor::~Executor() {
 
 void* Executor::thread_routine(void* ignored) {
     //TODO more deadlock safety? use robust mutex?
-    ConsoleOutput consoleOutput("Executor::thread_routine", true);
+    ConsoleOutput consoleOutput("Executor::thread_routine");
     try {
         CO_IFDEBUG(consoleOutput, "Started executor");
 

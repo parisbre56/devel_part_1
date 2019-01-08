@@ -9,7 +9,7 @@
 #define HASHTABLE_H_
 class HashTable;
 
-#define HASHTABLE_H_SEGMENT_SIZE 10000
+#define HASHTABLE_H_SEGMENT_SIZE 500000
 
 #include <string>
 

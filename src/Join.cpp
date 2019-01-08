@@ -408,6 +408,7 @@ JoinSumResult Join::performJoin() {
                 newOrder->addIfBetterMove(currentSubset.addTableNew(toAdd),
                                           move(newStat));
             }
+            //Disconnected tables need to be added in case of cartesian products
             if (notAdded && currentSubset.getOrderedTables() > 1) {
                 finalOrder.stealEntry(*oldOrder, subsetIndex);
             }
@@ -633,11 +634,14 @@ JoinSumResult Join::performJoin() {
         }
 
         CO_IFDEBUG(consoleOutput,
-                   "Cartesian product [smallestResultIndex=" << smallestResultIndex << ", smallestResult=" << (void*)smallestResult << ", secondSmallestResultIndex=" << secondSmallestResult << ", secondSmallestResult=" << (void*)secondSmallestResult << "]");
+                   "Cartesian product [smallestResultIndex=" << smallestResultIndex << ", secondSmallestResultIndex=" << secondSmallestResultIndex << ", smallestResult=" << *smallestResult << ", secondSmallestResult=" << *secondSmallestResult << "]");
         Relation relR(loadRelation(smallestResultIndex, 0, nullptr));
         Relation relS(loadRelation(secondSmallestResultIndex, 0, nullptr));
-
+        CO_IFDEBUG(consoleOutput,
+                   "Cartesian product relations [relR="<<relR<<", relS="<<relS<<"]");
         ResultContainer* newResult = new ResultContainer(relR * relS);
+        CO_IFDEBUG(consoleOutput,
+                   "Cartesian product finished [result="<<*newResult<<"]");
         //Delete old results and store new results
         storeResut(newResult);
 

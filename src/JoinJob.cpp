@@ -19,6 +19,7 @@ JoinJob::JoinJob(HashTableJob& rHash,
                  HashTableJob& sHash,
                  const uint32_t bucket,
                  const bool* usedRows) :
+        Callable(),
         rHash(rHash),
         sHash(sHash),
         bucket(bucket),

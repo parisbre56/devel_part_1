@@ -7,7 +7,7 @@
 
 #ifndef JOINSUMRESULT_H_
 #define JOINSUMRESULT_H_
-class JoinResultSum;
+class JoinSumResult;
 
 #include <iostream>
 
