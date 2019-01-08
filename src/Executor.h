@@ -17,17 +17,16 @@ class Executor;
 
 class Executor {
 protected:
-    static const struct timespec QUEUE_WAIT;
-
+    const timespec queueWait;
     const uint32_t threadNum;
     const uint32_t queueSize;
     bool shutDown;
     uint32_t queueStart;
     uint32_t queueEnd;
     uint32_t used;
-    uint32_t threadIdGenerator;
 
     pthread_mutex_t queueMutex;
+    pthread_condattr_t attr;
     pthread_cond_t queueAddedCond;
     pthread_cond_t queueRemovedCond;
 
