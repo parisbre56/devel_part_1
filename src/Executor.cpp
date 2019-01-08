@@ -12,6 +12,12 @@
 #include <cerrno>
 #include <cstring>
 
+#ifdef CLOCK_MONOTONIC_COARSE
+#define CLOCK_FOR_COND CLOCK_MONOTONIC_COARSE
+#else
+#define CLOCK_FOR_COND CLOCK_MONOTONIC
+#endif
+
 using namespace std;
 
 Executor::Executor(uint32_t threadNum, uint32_t queueSize) :
@@ -122,7 +128,7 @@ void* Executor::thread_routine(void* ignored) {
             //If queue is empty, wait for data
             if (used == 0) {
                 timespec timeToWait;
-                error = clock_gettime(CLOCK_MONOTONIC_COARSE, &timeToWait);
+                error = clock_gettime(CLOCK_FOR_COND, &timeToWait);
                 if (error != 0) {
                     pthread_mutex_unlock(&queueMutex);
                     throw runtime_error("Executor::thread_routine clock_gettime failed [error="
@@ -275,7 +281,7 @@ void Executor::addToQueue(Runnable* toAdd) {
         //If queue is full, wait for someone to remove things
         if (used == queueSize) {
             timespec timeToWait;
-            error = clock_gettime(CLOCK_MONOTONIC_COARSE, &timeToWait);
+            error = clock_gettime(CLOCK_FOR_COND, &timeToWait);
             if (error != 0) {
                 pthread_mutex_unlock(&queueMutex);
                 throw runtime_error("Executor::addToQueue clock_gettime failed [error="
