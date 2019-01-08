@@ -17,7 +17,10 @@ Metadata::Metadata(const TableLoader& tableLoader, uint32_t arraySize) :
         activeJoin(nullptr),
         arraySize(arraySize),
         joinsInBatch(0),
-        executor(new Executor(METADATA_H_THREAD_NUM, METADATA_H_QUEUE_SIZE)) {
+        hashExecutor(new Executor(METADATA_H_THREAD_NUM_HASH,
+                                  METADATA_H_QUEUE_SIZE)),
+        joinExecutor(new Executor(METADATA_H_THREAD_NUM_JOIN,
+                                  METADATA_H_QUEUE_SIZE)) {
 
 }
 
@@ -74,7 +77,7 @@ void Metadata::startJoin() {
     if (joinsInBatch >= arraySize) {
         throw runtime_error("startJoin: limit reached, can't add more joins");
     }
-    activeJoin = new Join(tableLoader, *executor, arraySize);
+    activeJoin = new Join(tableLoader, *hashExecutor, *joinExecutor, arraySize);
     batch[joinsInBatch++] = activeJoin;
 }
 void Metadata::endJoin() {

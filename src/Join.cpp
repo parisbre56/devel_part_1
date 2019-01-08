@@ -21,10 +21,12 @@
 using namespace std;
 
 Join::Join(const TableLoader& tableLoader,
-           Executor& executor,
+           Executor& hashExecutor,
+           Executor& joinExecutor,
            uint32_t arraySize) :
         tableLoader(tableLoader),
-        executor(executor),
+        hashExecutor(hashExecutor),
+        joinExecutor(joinExecutor),
         arraySize(arraySize),
         tableNum(0),
         tables(new uint32_t[arraySize]),
@@ -752,10 +754,10 @@ ResultContainer Join::radixHashJoin(const Relation& relR,
 
     HashFunctionBitmask bitmask(getBitmaskSize(relR.getNumTuples()));
 
-    HashTableJob rHash(executor, relR, bitmask);
-    executor.addToQueue(&rHash);
-    HashTableJob sHash(executor, relS, bitmask);
-    executor.addToQueue(&sHash);
+    HashTableJob rHash(hashExecutor, relR, bitmask);
+    joinExecutor.addToQueue(&rHash);
+    HashTableJob sHash(hashExecutor, relS, bitmask);
+    joinExecutor.addToQueue(&sHash);
     //CO_IFDEBUG(consoleOutput, "Hashes generated");
     //CO_IFDEBUG(consoleOutput, "rHash=" << rHash);
     //CO_IFDEBUG(consoleOutput, "sHash=" << sHash);
@@ -770,7 +772,7 @@ ResultContainer Join::radixHashJoin(const Relation& relR,
     joinJobs = new JoinJob*[buckets];
     for (uint32_t i = 0; i < buckets; ++i) {
         joinJobs[i] = new JoinJob(rHash, sHash, i, retResult.getUsedRows());
-        executor.addToQueue(joinJobs[i]);
+        joinExecutor.addToQueue(joinJobs[i]);
     }
     for (uint32_t i = 0; i < buckets; ++i) {
         ResultContainer& toMerge = *(joinJobs[i]->waitAndGetResult());

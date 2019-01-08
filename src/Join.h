@@ -28,7 +28,8 @@ class Join;
 class Join {
 protected:
     const TableLoader& tableLoader;
-    Executor& executor;
+    Executor& hashExecutor;
+    Executor& joinExecutor;
     const uint32_t arraySize;
     uint32_t tableNum;
     uint32_t* tables;
@@ -78,7 +79,8 @@ protected:
 public:
     Join() = delete;
     Join(const TableLoader& tableLoader,
-         Executor& executor,
+         Executor& hashExecutor,
+         Executor& joinExecutor,
          uint32_t arraySize);
     Join(const Join& toCopy) = delete;
     Join(Join&& toMove) = delete;

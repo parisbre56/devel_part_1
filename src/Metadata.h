@@ -13,7 +13,8 @@ class Metadata;
 #include "Join.h"
 #include "Executor.h"
 
-#define METADATA_H_THREAD_NUM 10
+#define METADATA_H_THREAD_NUM_JOIN 10
+#define METADATA_H_THREAD_NUM_HASH 10
 #define METADATA_H_QUEUE_SIZE 1000
 
 class Metadata {
@@ -23,7 +24,8 @@ protected:
     Join* activeJoin;
     const uint32_t arraySize;
     uint32_t joinsInBatch;
-    Executor* executor;
+    Executor* hashExecutor;
+    Executor* joinExecutor;
 
     void resetBatch();
 
