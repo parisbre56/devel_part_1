@@ -87,12 +87,11 @@ ResultContainer Relation::operator*(const Relation& cartesianProduct) const {
                               0);
     for (uint32_t i = 0; i < sizeTableRows; ++i) {
         if (usedRows[i] || cartesianProduct.usedRows[i]) {
-            retResult.usedRows[i] = true;
+            retResult.setUsedRow(i);
         }
     }
     for (uint64_t i = 0; i < numTuples; ++i) {
         for (uint64_t j = 0; j < cartesianProduct.numTuples; ++j) {
-            const bool* const usedRows = retResult.getUsedRows();
             Tuple toAdd(*(tuples[i]),
                         usedRows,
                         *(cartesianProduct.tuples[j]),
