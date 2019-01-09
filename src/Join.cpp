@@ -8,6 +8,7 @@
 #include "Join.h"
 
 #include <limits>
+#include <sstream>
 
 #include "ResultContainer.h"
 #include "ConsoleOutput.h"
@@ -366,9 +367,9 @@ JoinSumResult Join::performJoin() {
     //Apply filters to all table stats
     newOrder = new JoinOrderContainer(tableNum);
     for (uint32_t i = 0; i < tableNum; ++i) {
-        JoinOrder toAdd(tableNum, i);
         tableStats[i] = new MultipleColumnStats(loadStats(i));
         MultipleColumnStats stats(*(tableStats[i]));
+        JoinOrder toAdd(tableNum, i, stats);
         newOrder->addIfBetterMove(move(toAdd), move(stats));
     }
     //Find joinOrder
@@ -426,7 +427,8 @@ JoinSumResult Join::performJoin() {
                 }
                 notAdded = false;
                 //Add new subset if better
-                newOrder->addIfBetterMove(currentSubset.addTableNew(toAdd),
+                newOrder->addIfBetterMove(currentSubset.addTableNew(toAdd,
+                                                                    newStat),
                                           move(newStat));
             }
             //Disconnected tables need to be added in case of cartesian products
@@ -626,6 +628,27 @@ JoinSumResult Join::performJoin() {
         const JoinOrder& currentSubset = *((finalOrder.getJoinOrders())[subsetIndex]);
         CO_IFDEBUG(consoleOutput,
                    "Processing subset [subsetIndex="<<subsetIndex<<", currentSubset="<<currentSubset<<"]");
+        {
+            stringstream ss;
+            ss << "Join start  [usedTables=[";
+            for (uint32_t i = 0; i < tableNum; ++i) {
+                if (i != 0) {
+                    ss << ", ";
+                }
+                if (i == currentSubset.getTableOrder()[0]) {
+                    ss << 1;
+                }
+                else {
+                    ss << 0;
+                }
+            }
+            ss << "], rows="
+               << tableLoader.getTable(tables[currentSubset.getTableOrder()[0]]).getRows()
+               << ", predictedRows="
+               << currentSubset.getStats()[0]->getColumnStats()[0].getTotalRows()
+               << "]";
+            cerr << ss.str() << endl;
+        }
         for (uint32_t subsetTableIndex = 1;
                 subsetTableIndex < currentSubset.getOrderedTables();
                 ++subsetTableIndex) {
@@ -721,6 +744,22 @@ JoinSumResult Join::performJoin() {
 
             //Empty table means no sum
             if (relL.getNumTuples() == 0 || relR.getNumTuples() == 0) {
+                {
+                    stringstream ss;
+                    ss << "Join result [usedTables=[";
+                    for (uint32_t i = 0; i < tableNum; ++i) {
+                        if (i != 0) {
+                            ss << ", ";
+                        }
+                        ss << (relL.getUsedRow(i) || relR.getUsedRow(i));
+                    }
+                    ss << "], rows="
+                       << 0
+                       << ", predictedRows="
+                       << currentSubset.getStats()[subsetTableIndex]->getColumnStats()[0].getTotalRows()
+                       << "]";
+                    cerr << ss.str() << endl;
+                }
                 CO_IFDEBUG(consoleOutput,
                            "Relation empty, not performing join [relL.numTuples=" << relL.getNumTuples() << ", relR.numTuples=" << relR.getNumTuples() << "]");
                 return retVal;
@@ -734,6 +773,22 @@ JoinSumResult Join::performJoin() {
             CO_IFDEBUG(consoleOutput, "Join result: "<< *newResult);
 
             //Delete old results and store new results
+            {
+                stringstream ss;
+                ss << "Join result [usedTables=[";
+                for (uint32_t i = 0; i < tableNum; ++i) {
+                    if (i != 0) {
+                        ss << ", ";
+                    }
+                    ss << newResult->getUsedRows()[i];
+                }
+                ss << "], rows="
+                   << newResult->getResultCount()
+                   << ", predictedRows="
+                   << currentSubset.getStats()[subsetTableIndex]->getColumnStats()[0].getTotalRows()
+                   << "]";
+                cerr << ss.str() << endl;
+            }
             storeResut(newResult);
 
             //Empty join means no sum

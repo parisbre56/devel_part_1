@@ -14,27 +14,38 @@
 using namespace std;
 
 JoinOrder::JoinOrder(uint32_t tables) :
-        arraySize(tables), orderedTables(0), tableOrder(new uint32_t[tables]) {
+        arraySize(tables),
+        orderedTables(0),
+        tableOrder(new uint32_t[tables]),
+        stats(new const MultipleColumnStats*[tables]) {
 }
 
-JoinOrder::JoinOrder(uint32_t tables, uint32_t table) :
+JoinOrder::JoinOrder(uint32_t tables,
+                     uint32_t table,
+                     const MultipleColumnStats& tableStats) :
         JoinOrder(tables) {
-    addTable(table);
+    addTable(table, tableStats);
 }
 
 JoinOrder::JoinOrder(const JoinOrder& toCopy) :
         arraySize(toCopy.arraySize),
         orderedTables(toCopy.orderedTables),
-        tableOrder(new uint32_t[toCopy.arraySize]) {
+        tableOrder(new uint32_t[toCopy.arraySize]),
+        stats(new const MultipleColumnStats*[toCopy.arraySize]) {
     memcpy(tableOrder,
            toCopy.tableOrder,
            toCopy.orderedTables * sizeof(uint32_t));
+    for (uint32_t i = 0; i < toCopy.orderedTables; ++i) {
+        stats[i] = new MultipleColumnStats(*(toCopy.stats[i]));
+    }
 }
 JoinOrder::JoinOrder(JoinOrder&& toMove) :
         arraySize(toMove.arraySize),
         orderedTables(toMove.orderedTables),
-        tableOrder(toMove.tableOrder) {
+        tableOrder(toMove.tableOrder),
+        stats(toMove.stats) {
     toMove.tableOrder = nullptr;
+    toMove.stats = nullptr;
 }
 JoinOrder& JoinOrder::operator=(const JoinOrder& toCopy) {
     if (arraySize != toCopy.arraySize) {
@@ -44,20 +55,35 @@ JoinOrder& JoinOrder::operator=(const JoinOrder& toCopy) {
                             + to_string(toCopy.arraySize)
                             + "]");
     }
+    for (uint32_t i = 0; i < orderedTables; ++i) {
+        delete stats[i];
+    }
+
     orderedTables = toCopy.orderedTables;
     memcpy(tableOrder,
            toCopy.tableOrder,
            toCopy.orderedTables * sizeof(uint32_t));
+    for (uint32_t i = 0; i < toCopy.orderedTables; ++i) {
+        stats[i] = new MultipleColumnStats(*(toCopy.stats[i]));
+    }
     return *this;
 }
 JoinOrder& JoinOrder::operator=(JoinOrder&& toMove) {
     if (tableOrder != nullptr) {
         delete[] tableOrder;
     }
+    if (stats != nullptr) {
+        for (uint32_t i = 0; i < orderedTables; ++i) {
+            delete stats[i];
+        }
+        delete[] stats;
+    }
     arraySize = toMove.arraySize;
     orderedTables = toMove.orderedTables;
     tableOrder = toMove.tableOrder;
     toMove.tableOrder = nullptr;
+    stats = toMove.stats;
+    toMove.stats = nullptr;
     return *this;
 }
 
@@ -65,9 +91,16 @@ JoinOrder::~JoinOrder() {
     if (tableOrder != nullptr) {
         delete[] tableOrder;
     }
+    if (stats != nullptr) {
+        for (uint32_t i = 0; i < orderedTables; ++i) {
+            delete stats[i];
+        }
+        delete[] stats;
+    }
 }
 
-void JoinOrder::addTable(uint32_t table) {
+void JoinOrder::addTable(uint32_t table,
+                         const MultipleColumnStats& tableStats) {
     if (containsTable(table)) {
         stringstream errString;
         errString << "JoinOrder::addTable already contains table [table="
@@ -86,12 +119,15 @@ void JoinOrder::addTable(uint32_t table) {
                   << "]";
         throw runtime_error(errString.str());
     }
-    tableOrder[orderedTables++] = table;
+    tableOrder[orderedTables] = table;
+    stats[orderedTables] = new MultipleColumnStats(tableStats);
+    orderedTables++;
 }
 
-JoinOrder JoinOrder::addTableNew(uint32_t table) const {
+JoinOrder JoinOrder::addTableNew(uint32_t table,
+                                 const MultipleColumnStats& tableStats) const {
     JoinOrder retVal(*this);
-    retVal.addTable(table);
+    retVal.addTable(table, tableStats);
     return retVal;
 }
 
@@ -129,6 +165,10 @@ uint32_t JoinOrder::getOrderedTables() const {
 
 const uint32_t* JoinOrder::getTableOrder() const {
     return tableOrder;
+}
+
+const MultipleColumnStats* const * JoinOrder::getStats() const {
+    return stats;
 }
 
 ostream& operator<<(ostream& os, const JoinOrder& toPrint) {

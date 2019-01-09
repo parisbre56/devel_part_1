@@ -181,8 +181,7 @@ int main(int argc, char* argv[]) {
         else {
             string input;
             do {
-                cerr << "Give a join expression, F to end the batch or Done to exit: "
-                     << endl;
+                //cerr << "Give a join expression, F to end the batch or Done to exit: " << endl;
                 if (cin.eof()) {
                     input = "Done";
                 }

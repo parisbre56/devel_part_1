@@ -104,7 +104,7 @@ bool JoinOrderContainer::addIfBetterMove(JoinOrder&& toAdd,
     }
     //Else, it already exists. Check if the new one is better
     if (stats[index]->getColumnStats()->getTotalRows()
-        > stat.getColumnStats()->getTotalRows()) {
+        < stat.getColumnStats()->getTotalRows()) {
         *(joinOrders[index]) = move(toAdd);
         *(stats[index]) = move(stat);
         return true;
