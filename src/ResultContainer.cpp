@@ -13,6 +13,7 @@
 #include <limits>
 
 #include "ConsoleOutput.h"
+#include "LoadRelationResultJob.h"
 
 using namespace std;
 
@@ -180,7 +181,8 @@ void ResultContainer::setUsedRow(uint32_t row) {
     usedRows[row] = true;
 }
 
-Relation ResultContainer::loadToRelation(const size_t sizePayloads,
+Relation ResultContainer::loadToRelation(Executor& executor,
+                                         const size_t sizePayloads,
                                          const uint64_t * const * const payloadCols,
                                          const uint32_t * const payloadTables) const {
     ConsoleOutput consoleOutput("ResultContainer::loadToRelation");
@@ -195,22 +197,32 @@ Relation ResultContainer::loadToRelation(const size_t sizePayloads,
         }
     }
     CO_IFDEBUG(consoleOutput, "]");
-    Relation rel(resultCount, sizeTableRows, sizePayloads, usedRows);
+    Relation rel(resultCount,
+                 sizeTableRows,
+                 sizePayloads,
+                 resultCount,
+                 usedRows);
     const Result* currResult = start;
-    while (currResult != nullptr) {
-        const Relation& currRelation = currResult->getRelation();
-        const uint32_t numTuples = currRelation.getNumTuples();
-        const Tuple * const * currTuple = currRelation.getTuples();
-        for (uint32_t i = 0; i < numTuples; ++i, ++currTuple) {
-            Tuple toAdd(**currTuple, sizePayloads);
-            for (size_t j = 0; j < sizePayloads; ++j) {
-                toAdd.setPayload(j,
-                                 payloadCols[j][toAdd.getTableRow(payloadTables[j])]);
-            }
-            CO_IFDEBUG(consoleOutput, "Adding Tuple "<<toAdd);
-            rel.addTuple(move(toAdd));
-        }
+    while (currResult != nullptr
+           && currResult->getRelation().getNumTuples() == 0) {
         currResult = currResult->getNext();
+    }
+    if (currResult != nullptr) {
+        LoadRelationResultJob asyncLoaders(executor,
+                                           *currResult,
+                                           rel,
+                                           0,
+                                           sizePayloads,
+                                           payloadCols,
+                                           payloadTables);
+        //If we only have one child, then there's no point in running asynchronously
+        if (asyncLoaders.hasChild()) {
+            executor.addToQueue(&asyncLoaders);
+            asyncLoaders.waitAndGetResult();
+        }
+        else {
+            asyncLoaders.run();
+        }
     }
     return rel;
 }

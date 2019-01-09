@@ -25,7 +25,9 @@ protected:
     uint64_t numTuples;
     uint64_t arraySize;
     Tuple** tuples;
+    /** The tables contained in this tuple **/
     bool* usedRows;
+    /** True if we own the used rows array **/
     bool manageUsedRows;
 
     uint32_t sizeTableRows;
@@ -37,6 +39,13 @@ public:
     Relation(uint64_t arraySize,
              uint32_t sizeTableRows,
              size_t sizePayloads,
+             bool* usedRows = nullptr);
+    /** Create a new relation initialized for loading a
+     * table using multiple threads. **/
+    Relation(uint64_t arraySize,
+             uint32_t sizeTableRows,
+             size_t sizePayloads,
+             uint64_t numTuples,
              bool* usedRows = nullptr);
     /** Copy constructor, copies the filled part of the
      * underlying array from another Relation. **/
@@ -69,6 +78,13 @@ public:
     void addTuple(Tuple& tuple);
     /** Move a tuple **/
     void addTuple(Tuple&& tuple);
+    /** Set the tuple at the given index. Use very carefully.
+     * Use only for loading table using multiple threads.
+     * It assumes you know what you're doing so it doesn't
+     * check if it's within bounds or if it hasn't been
+     * previously set. **/
+    void setTuple(uint64_t index, Tuple& tuple);
+    void setTuple(uint64_t index, Tuple&& tuple);
     /** Get the tuple at the given index. **/
     const Tuple* const * const getTuples() const;
     const Tuple& getTuple(uint64_t index) const;

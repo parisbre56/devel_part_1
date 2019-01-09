@@ -16,6 +16,7 @@ class Metadata;
 
 #define METADATA_H_THREAD_NUM_JOIN 10
 #define METADATA_H_THREAD_NUM_HASH 10
+#define METADATA_H_THREAD_NUM_PRELOAD 10
 #define METADATA_H_QUEUE_SIZE 100000
 #define METADATA_H_THREAD_NUM_BATCH 10
 #define METADATA_H_QUEUE_SIZE_BATCH 100
@@ -29,6 +30,7 @@ protected:
     uint32_t joinsInBatch;
     Executor* hashExecutor;
     Executor* joinExecutor;
+    Executor* preloadExecutor;
     Executor* batchExecutor;
 
     void resetBatch();

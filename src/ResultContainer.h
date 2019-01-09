@@ -15,6 +15,7 @@ class ResultContainer;
 
 #include "Result.h"
 #include "Relation.h"
+#include "Executor.h"
 
 #define RESULTCONTAINER_H_L2_CACHE_SIZE 262144
 
@@ -57,7 +58,8 @@ public:
      * table the values will be loaded.
      * {payloadCols} is an array of size {sizePayloads} that has
      * the columns of the table from which the values will be loaded. **/
-    Relation loadToRelation(const size_t sizePayloads,
+    Relation loadToRelation(Executor& executor,
+                            const size_t sizePayloads,
                             const uint64_t * const * const payloadCols,
                             const uint32_t * const payloadTables) const;
     void mergeResult(ResultContainer&& toMerge);

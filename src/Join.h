@@ -25,12 +25,14 @@ class Join;
 #include "Executor.h"
 #include "JoinJob.h"
 #include "SumJob.h"
+#include "PreloadTableJob.h"
 
 class Join {
 protected:
     const TableLoader& tableLoader;
     Executor& hashExecutor;
     Executor& joinExecutor;
+    Executor& preloadExecutor;
     const uint32_t arraySize;
     uint32_t tableNum;
     uint32_t* tables;
@@ -48,12 +50,12 @@ protected:
     uint32_t buckets;
     JoinJob** joinJobs;
     SumJob** sumJobs;
+    PreloadTableJob** preloadTableJobs;
 
     Relation loadRelation(const uint32_t tableReference,
                           const uint32_t colsToProcessNum,
                           const TableColumn* const colsToProcess) const;
-    ResultContainer radixHashJoin(const Relation& relR,
-                                  const Relation& relS);
+    ResultContainer radixHashJoin(const Relation& relR, const Relation& relS);
     void storeResut(ResultContainer* newResult);
     void fillSums(JoinSumResult& retVal);
     void fillSumsFromRelation(JoinSumResult& retVal,
@@ -77,12 +79,17 @@ protected:
      * assuming the stat col order follows the same order as the given JoinOrder **/
     size_t colOffsetForTable(const JoinOrder& currentSubset,
                              uint32_t joinTable);
+    bool failsFilters(uint32_t filtersToApplyNum,
+                      const Filter* const * const filtersToApply,
+                      const Table& joinTableLoaded,
+                      uint64_t currRowNum) const;
 
 public:
     Join() = delete;
     Join(const TableLoader& tableLoader,
          Executor& hashExecutor,
          Executor& joinExecutor,
+         Executor& preloadExecutor,
          uint32_t arraySize);
     Join(const Join& toCopy) = delete;
     Join(Join&& toMove) = delete;

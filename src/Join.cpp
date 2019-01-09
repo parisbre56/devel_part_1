@@ -23,10 +23,12 @@ using namespace std;
 Join::Join(const TableLoader& tableLoader,
            Executor& hashExecutor,
            Executor& joinExecutor,
+           Executor& preloadExecutor,
            uint32_t arraySize) :
         tableLoader(tableLoader),
         hashExecutor(hashExecutor),
         joinExecutor(joinExecutor),
+        preloadExecutor(preloadExecutor),
         arraySize(arraySize),
         tableNum(0),
         tables(new uint32_t[arraySize]),
@@ -42,7 +44,8 @@ Join::Join(const TableLoader& tableLoader,
         newOrder(nullptr),
         buckets(0),
         joinJobs(nullptr),
-        sumJobs(nullptr) {
+        sumJobs(nullptr),
+        preloadTableJobs(nullptr) {
 
 }
 
@@ -110,6 +113,14 @@ Join::~Join() {
             }
         }
         delete[] sumJobs;
+    }
+    if (preloadTableJobs != nullptr) {
+        for (uint32_t i = 0; i < tableNum; ++i) {
+            if (preloadTableJobs[i] != nullptr) {
+                delete preloadTableJobs[i];
+            }
+        }
+        delete[] preloadTableJobs;
     }
 }
 
@@ -451,8 +462,165 @@ JoinSumResult Join::performJoin() {
     delete[] tableStats;
     tableStats = nullptr;
 
+    //Preload tables
+    const uint32_t finalOrderUsed = finalOrder.getUsed();
+    {
+        bool isRelationProcessedPreload[joinRelationNum] { /* init to false */};
+        preloadTableJobs = new PreloadTableJob*[tableNum] {/* init to nullptr */};
+        for (uint32_t subsetIndex = 0; subsetIndex < finalOrderUsed;
+                ++subsetIndex) {
+            const JoinOrder& currentSubset = *((finalOrder.getJoinOrders())[subsetIndex]);
+            CO_IFDEBUG(consoleOutput,
+                       "Processing subset [subsetIndex="<<subsetIndex<<", currentSubset="<<currentSubset<<"]");
+            const uint32_t subsetOrderedTablesNum = currentSubset.getOrderedTables();
+            //If this is a disconnected table, then preload it without payload
+            if (subsetOrderedTablesNum == 1) {
+                uint32_t tableToLoad = currentSubset.getTableOrder()[0];
+                preloadTableJobs[tableToLoad] = new PreloadTableJob(tableLoader,
+                                                                    tableToLoad,
+                                                                    tableNum,
+                                                                    tables,
+                                                                    filterNum,
+                                                                    filters,
+                                                                    0);
+                preloadExecutor.addToQueue(preloadTableJobs[currentSubset.getTableOrder()[0]]);
+                continue;
+            }
+            //Else, preload with the necessary payload
+            for (uint32_t subsetTableIndex = 1;
+                    subsetTableIndex < currentSubset.getOrderedTables();
+                    ++subsetTableIndex) {
+                CO_IFDEBUG(consoleOutput,
+                           "Processing subset [subsetTableIndex="<<subsetTableIndex<<", subsetIndex="<<subsetIndex<<", currentSubset="<<currentSubset<<"]");
+                uint32_t sameTableRelations = 0;
+                const JoinRelation* smallestRelation = nullptr;
+                for (uint32_t relationIndex = 0;
+                        relationIndex < joinRelationNum; ++relationIndex) {
+                    if (isRelationProcessedPreload[relationIndex]) {
+                        continue;
+                    }
+                    const JoinRelation& currRelation = *(joinRelations[relationIndex]);
+                    if (currRelation.getLeftNum()
+                        == currentSubset.getTableOrder()[subsetTableIndex]) {
+                        bool matchesSubset = false;
+                        for (uint32_t i = 0; i < subsetTableIndex; ++i) {
+                            if (currentSubset.getTableOrder()[i]
+                                == currRelation.getRightNum()) {
+                                matchesSubset = true;
+                                break;
+                            }
+                        }
+                        if (matchesSubset) {
+                            ++sameTableRelations;
+                            if (smallestRelation == nullptr) {
+                                smallestRelation = joinRelations[relationIndex];
+                            }
+                        }
+                    }
+                    else if (currRelation.getRightNum()
+                             == currentSubset.getTableOrder()[subsetTableIndex]) {
+                        bool matchesSubset = false;
+                        for (uint32_t i = 0; i < subsetTableIndex; ++i) {
+                            if (currentSubset.getTableOrder()[i]
+                                == currRelation.getLeftNum()) {
+                                matchesSubset = true;
+                                break;
+                            }
+                        }
+                        if (matchesSubset) {
+                            ++sameTableRelations;
+                            if (smallestRelation == nullptr) {
+                                smallestRelation = joinRelations[relationIndex];
+                            }
+                        }
+                    }
+                }
+
+                if (smallestRelation == nullptr) {
+                    throw runtime_error("Should never happen: Relation not found");
+                }
+                CO_IFDEBUG(consoleOutput,
+                           "Found relations [sameTableRelations="<<sameTableRelations<<", smallestRelation=" << (*smallestRelation) <<"]");
+
+                const uint32_t tableToLoad = currentSubset.getTableOrder()[subsetTableIndex];
+                const uint32_t leftNum = smallestRelation->getLeftNum();
+                const uint32_t rightNum = smallestRelation->getRightNum();
+                const bool processLeft = (subsetTableIndex == 1
+                                          || leftNum == tableToLoad);
+                const bool processRight = (subsetTableIndex == 1
+                                           || rightNum == tableToLoad);
+                if (processLeft) {
+                    preloadTableJobs[leftNum] = new PreloadTableJob(tableLoader,
+                                                                    leftNum,
+                                                                    tableNum,
+                                                                    tables,
+                                                                    filterNum,
+                                                                    filters,
+                                                                    sameTableRelations);
+                }
+                if (processRight) {
+                    preloadTableJobs[rightNum] = new PreloadTableJob(tableLoader,
+                                                                     rightNum,
+                                                                     tableNum,
+                                                                     tables,
+                                                                     filterNum,
+                                                                     filters,
+                                                                     sameTableRelations);
+                }
+
+                sameTableRelations = 0;
+                for (uint32_t relationIndex = 0;
+                        relationIndex < joinRelationNum; ++relationIndex) {
+                    const JoinRelation& currRelation = *(joinRelations[relationIndex]);
+                    unsigned char cmp = currRelation.sameJoinAs(*smallestRelation,
+                                                                resultContainers);
+                    if (cmp != 0) {
+                        CO_IFDEBUG(consoleOutput,
+                                   "Will process relation [cmp=" << to_string(cmp) << ", currRelation=" << currRelation << "]");
+                        isRelationProcessedPreload[relationIndex] = true;
+                        if (cmp == 1) {
+                            if (processLeft) {
+                                preloadTableJobs[leftNum]->setColToProcess(sameTableRelations,
+                                                                           currRelation.getLeftNum(),
+                                                                           currRelation.getLeftCol());
+                            }
+                            if (processRight) {
+                                preloadTableJobs[rightNum]->setColToProcess(sameTableRelations,
+                                                                            currRelation.getRightNum(),
+                                                                            currRelation.getRightCol());
+                            }
+                        }
+                        else if (cmp == 2) {
+                            if (processLeft) {
+                                preloadTableJobs[leftNum]->setColToProcess(sameTableRelations,
+                                                                           currRelation.getRightNum(),
+                                                                           currRelation.getRightCol());
+                            }
+                            if (processRight) {
+                                preloadTableJobs[rightNum]->setColToProcess(sameTableRelations,
+                                                                            currRelation.getLeftNum(),
+                                                                            currRelation.getLeftCol());
+                            }
+                        }
+                        else {
+                            throw runtime_error("Unknown cmp while searching for matching relations");
+                        }
+                        sameTableRelations++;
+                    }
+                }
+
+                if (processLeft) {
+                    preloadExecutor.addToQueue(preloadTableJobs[leftNum]);
+                }
+                if (processRight) {
+                    preloadExecutor.addToQueue(preloadTableJobs[rightNum]);
+                }
+            }
+        }
+    }
+
     //Start joining in the orders we've found
-    for (uint32_t subsetIndex = 0; subsetIndex < finalOrder.getUsed();
+    for (uint32_t subsetIndex = 0; subsetIndex < finalOrderUsed;
             ++subsetIndex) {
         const JoinOrder& currentSubset = *((finalOrder.getJoinOrders())[subsetIndex]);
         CO_IFDEBUG(consoleOutput,
@@ -820,10 +988,32 @@ ResultContainer Join::radixHashJoin(const Relation& relR,
     return retResult;
 }
 
+bool Join::failsFilters(uint32_t filtersToApplyNum,
+                        const Filter* const * const filtersToApply,
+                        const Table& joinTableLoaded,
+                        uint64_t currRowNum) const {
+    for (uint32_t filterIndex = 0; filterIndex < filtersToApplyNum;
+            ++filterIndex) {
+        const Filter& currFilter = *(filtersToApply[filterIndex]);
+        if (!currFilter.passesFilter(joinTableLoaded, currRowNum)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 Relation Join::loadRelation(const uint32_t tableReference,
                             const uint32_t colsToProcessNum,
                             const TableColumn* const colsToProcess) const {
     ConsoleOutput consoleOutput("Join::loadRelation");
+    if (preloadTableJobs[tableReference] != nullptr) {
+        CO_IFDEBUG(consoleOutput, "Waiting for preloaded table");
+        Relation& preloadedResult = *(preloadTableJobs[tableReference]->waitAndGetResult());
+        Relation preloaded(move(preloadedResult));
+        delete preloadTableJobs[tableReference];
+        preloadTableJobs[tableReference] = nullptr;
+        return preloaded;
+    }
     CO_IFDEBUG(consoleOutput,
                "Join::loadRelation [tableReference="<<tableReference<<", colsToProcessNum="<<colsToProcessNum<<", colsToProcess=[");
     if (colsToProcess == nullptr) {
@@ -852,7 +1042,7 @@ Relation Join::loadRelation(const uint32_t tableReference,
             tableCols[i] = tableLoader.getTable(tables[payloadTables[i] = currTableColumn.getTableNum()]).getCol(currTableColumn.getTableCol());
         }
     }
-//If this table has not been previously processed
+    //If this table has not been previously processed
     if (resultContainerLoaded == nullptr) {
         //Find filters
         uint32_t filtersToApplyNum = 0;
@@ -876,17 +1066,11 @@ Relation Join::loadRelation(const uint32_t tableReference,
         Relation retVal(rows, tableNum, colsToProcessNum);
         retVal.setUsedRow(tableReference);
         for (uint64_t currRowNum = 0; currRowNum < rows; currRowNum++) {
-            //Apply filters for this table
-            bool failedFilters = false;
-            for (uint32_t filterIndex = 0; filterIndex < filtersToApplyNum;
-                    ++filterIndex) {
-                const Filter& currFilter = *(filtersToApply[filterIndex]);
-                if (!currFilter.passesFilter(joinTableLoaded, currRowNum)) {
-                    failedFilters = true;
-                    break;
-                }
-            }
-            if (failedFilters) {
+            //Skip row if it fails filters
+            if (failsFilters(filtersToApplyNum,
+                             filtersToApply,
+                             joinTableLoaded,
+                             currRowNum)) {
                 continue;
             }
 
@@ -902,7 +1086,8 @@ Relation Join::loadRelation(const uint32_t tableReference,
         return retVal;
     }
 //Else, if resultContainerLoaded is not null (i.e. table was part of a previously joined relation)
-    return resultContainerLoaded->loadToRelation(colsToProcessNum,
+    return resultContainerLoaded->loadToRelation(hashExecutor,
+                                                 colsToProcessNum,
                                                  tableCols,
                                                  payloadTables);
 }

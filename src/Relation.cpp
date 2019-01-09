@@ -29,6 +29,22 @@ Relation::Relation(uint64_t arraySize,
         sizePayloads(sizePayloads) {
 }
 
+Relation::Relation(uint64_t arraySize,
+                   uint32_t sizeTableRows,
+                   size_t sizePayloads,
+                   uint64_t numTuples,
+                   bool* usedRows) :
+        numTuples(numTuples),
+        arraySize(arraySize),
+        tuples(new Tuple*[arraySize] {/* init to nullptr */}),
+        usedRows(
+                usedRows == nullptr ? new bool[sizeTableRows] { /*init to false*/} :
+                                      usedRows),
+        manageUsedRows(usedRows == nullptr),
+        sizeTableRows(sizeTableRows),
+        sizePayloads(sizePayloads) {
+}
+
 Relation::Relation(const Relation& toCopy) :
         numTuples(toCopy.numTuples),
         arraySize(toCopy.arraySize),
@@ -38,7 +54,7 @@ Relation::Relation(const Relation& toCopy) :
         sizeTableRows(toCopy.sizeTableRows),
         sizePayloads(toCopy.sizePayloads) {
     memcpy(usedRows, toCopy.usedRows, toCopy.sizeTableRows * sizeof(bool));
-    for (uint64_t i = 0; i < toCopy.arraySize; ++i) {
+    for (uint64_t i = 0; i < toCopy.numTuples; ++i) {
         tuples[i] = new Tuple(*(toCopy.tuples[i]));
     }
 }
@@ -51,7 +67,7 @@ Relation::Relation(const Relation& toCopy, bool * const usedRows) :
         manageUsedRows(false),
         sizeTableRows(toCopy.sizeTableRows),
         sizePayloads(toCopy.sizePayloads) {
-    for (uint64_t i = 0; i < toCopy.arraySize; ++i) {
+    for (uint64_t i = 0; i < toCopy.numTuples; ++i) {
         tuples[i] = new Tuple(*(toCopy.tuples[i]));
     }
 }
@@ -72,7 +88,9 @@ Relation::~Relation() {
     //Delete all copies if this hasn't been moved
     if (tuples != nullptr) {
         for (uint64_t i = 0; i < numTuples; ++i) {
-            delete tuples[i];
+            if (tuples[i] != nullptr) {
+                delete tuples[i];
+            }
         }
         delete[] tuples;
     }
@@ -167,6 +185,19 @@ void Relation::addTuple(Tuple&& tuple) {
     }
     tuples[numTuples++] = new Tuple(move(tuple));
 }
+
+/** Set the tuple at the given index. Use very carefully.
+ * Use only for loading table using multiple threads.
+ * It assumes you know what you're doing so it doesn't
+ * check if it's within bounds or if it hasn't been
+ * previously set. **/
+void Relation::setTuple(uint64_t index, Tuple& tuple) {
+    tuples[index] = new Tuple(tuple);
+}
+void Relation::setTuple(uint64_t index, Tuple&& tuple) {
+    tuples[index] = new Tuple(move(tuple));
+}
+
 /** Get the tuple at the given index. **/
 const Tuple* const * const Relation::getTuples() const {
     return tuples;
