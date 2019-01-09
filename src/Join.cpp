@@ -1006,7 +1006,8 @@ Relation Join::loadRelation(const uint32_t tableReference,
                             const uint32_t colsToProcessNum,
                             const TableColumn* const colsToProcess) const {
     ConsoleOutput consoleOutput("Join::loadRelation");
-    if (preloadTableJobs[tableReference] != nullptr) {
+    if (preloadTableJobs != nullptr
+        && preloadTableJobs[tableReference] != nullptr) {
         CO_IFDEBUG(consoleOutput, "Waiting for preloaded table");
         Relation& preloadedResult = *(preloadTableJobs[tableReference]->waitAndGetResult());
         Relation preloaded(move(preloadedResult));
