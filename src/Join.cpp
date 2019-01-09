@@ -117,6 +117,7 @@ Join::~Join() {
     if (preloadTableJobs != nullptr) {
         for (uint32_t i = 0; i < tableNum; ++i) {
             if (preloadTableJobs[i] != nullptr) {
+                preloadTableJobs[i]->waitToFinish(); //We have no way to cancel jobs, so we are obliged to let it finish or risk segfault
                 delete preloadTableJobs[i];
             }
         }
