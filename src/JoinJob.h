@@ -29,6 +29,16 @@ public:
             HashTableJob& sHash,
             const uint32_t bucket,
             const bool* usedRows);
+    JoinJob(HashTableJob& rHash,
+            HashTableJob& sHash,
+            const uint32_t bucket,
+            const bool* usedRows,
+            ResultContainer* toReuse);
+    JoinJob(HashTableJob& rHash,
+            HashTableJob& sHash,
+            const uint32_t bucket,
+            const bool* usedRows,
+            Result* toReuse);
     JoinJob(const JoinJob& toCopy) = delete;
     JoinJob(JoinJob&& toMove) = delete;
     JoinJob& operator=(const JoinJob& toCopy) = delete;

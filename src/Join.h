@@ -44,6 +44,7 @@ protected:
     const TableColumn** sumColumns; //TODO reorder to bring same table closer?
     //Current results of joining, each relation is stored in its own resultContainer
     ResultContainer** resultContainers;
+    const ResultContainer* reuseContainer;
     MultipleColumnStats** tableStats;
     JoinOrderContainer* oldOrder;
     JoinOrderContainer* newOrder;
@@ -54,8 +55,8 @@ protected:
 
     Relation loadRelation(const uint32_t tableReference,
                           const uint32_t colsToProcessNum,
-                          const TableColumn* const colsToProcess) const;
-    ResultContainer radixHashJoin(const Relation& relR, const Relation& relS);
+                          const TableColumn* const colsToProcess);
+    ResultContainer* radixHashJoin(const Relation& relR, const Relation& relS);
     void storeResut(ResultContainer* newResult);
     void fillSums(JoinSumResult& retVal);
     void fillSumsFromRelation(JoinSumResult& retVal,

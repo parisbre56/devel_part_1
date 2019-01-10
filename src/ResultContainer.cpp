@@ -20,7 +20,8 @@ using namespace std;
 ResultContainer::ResultContainer(uint64_t maxExpectedResults,
                                  uint32_t sizeTableRows,
                                  size_t sizePayloads,
-                                 const bool* usedRows) :
+                                 const bool* usedRows,
+                                 Result* toReuse) :
         sizeTableRows(sizeTableRows),
         sizePayloads(sizePayloads),
         resultCount(0),
@@ -36,11 +37,16 @@ ResultContainer::ResultContainer(uint64_t maxExpectedResults,
                                 - sizeof(Result)
                                 - sizeof(Relation))
                                / (sizeOfTuple);
-    start = new Result((maxExpectedResults < blockSize) ? (maxExpectedResults) :
-                                                          (blockSize),
-                       sizeTableRows,
-                       sizePayloads,
-                       this->usedRows);
+    /*start = new Result((maxExpectedResults < blockSize) ? (maxExpectedResults) :
+     (blockSize),
+     sizeTableRows,
+     sizePayloads,
+     this->usedRows);*/
+    start = (toReuse != nullptr) ? toReuse :
+                                   new Result(blockSize,
+                                              sizeTableRows,
+                                              sizePayloads,
+                                              this->usedRows);
     end = start;
 }
 
@@ -159,6 +165,12 @@ void ResultContainer::reset() {
     end = start;
 }
 
+void ResultContainer::relenquish() {
+    resultCount = 0;
+    start = nullptr;
+    end = nullptr;
+}
+
 uint64_t ResultContainer::getResultCount() const {
     return resultCount;
 }
@@ -200,8 +212,12 @@ Relation ResultContainer::loadToRelation(Executor& executor,
     Relation rel(resultCount,
                  sizeTableRows,
                  sizePayloads,
-                 resultCount,
-                 usedRows);
+                 resultCount);
+    for (uint32_t i = 0; i < sizeTableRows; ++i) {
+        if (usedRows[i]) {
+            rel.setUsedRow(i);
+        }
+    }
     const Result* currResult = start;
     while (currResult != nullptr
            && currResult->getRelation().getNumTuples() == 0) {
@@ -228,11 +244,19 @@ Relation ResultContainer::loadToRelation(Executor& executor,
 }
 
 void ResultContainer::mergeResult(ResultContainer&& toMerge) {
-    Result* oldEndNext = end->getNext();
-    end->setNext(toMerge.start);
-    toMerge.end->getLastSegment()->setNext(oldEndNext);
-    toMerge.start = nullptr;
-    resultCount += toMerge.resultCount;
+    if (start == nullptr) {
+        start = toMerge.start;
+        end = start->getFirstNonFullSegment();
+        resultCount += toMerge.resultCount;
+        toMerge.start = nullptr;
+    }
+    else {
+        Result* oldEndNext = end->getNext();
+        end->setNext(toMerge.start);
+        toMerge.end->getLastSegment()->setNext(oldEndNext);
+        toMerge.start = nullptr;
+        resultCount += toMerge.resultCount;
+    }
 }
 
 std::ostream& operator<<(std::ostream& os, const ResultContainer& toPrint) {

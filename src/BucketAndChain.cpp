@@ -66,6 +66,7 @@ void BucketAndChain::join(const HashTable& hashToJoin,
 
     CO_IFDEBUG(consoleOutput,
                "Examining " << numTuplesToJoin << " tuples in given hashTable");
+    Tuple joinRow(sizeTableRows, 0);
     for (uint64_t i = 0; i < numTuplesToJoin; ++i) {
         CO_IFDEBUG(consoleOutput, "Examining tuple " << i);
         const Tuple& currTuple = *(tuplesToJoin[i]);
@@ -92,12 +93,17 @@ void BucketAndChain::join(const HashTable& hashToJoin,
             if (matches) {
                 CO_IFDEBUG(consoleOutput,
                            "Found matching Tuples [searchPointTuple="<<searchPointTuple<<", currTuple="<<currTuple<<"]");
-                Tuple joinRow(searchPointTuple,
-                              usedRows,
-                              currTuple,
-                              hashToJoin.getUsedRows());
+                const bool* hashToJoinUsedRows = hashToJoin.getUsedRows();
+                for (uint32_t i = 0; i < sizeTableRows; ++i) {
+                    if (usedRows[i]) {
+                        joinRow.setTableRow(i, searchPointTuple.getTableRow(i));
+                    }
+                    else if (hashToJoinUsedRows[i]) {
+                        joinRow.setTableRow(i, currTuple.getTableRow(i));
+                    }
+                }
                 CO_IFDEBUG(consoleOutput, "Adding joinRow " << joinRow);
-                resultAggregator.addTuple(move(joinRow));
+                resultAggregator.addTuple(joinRow);
             }
             searchPoint = chain[searchPoint];
         }

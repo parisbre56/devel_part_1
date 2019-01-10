@@ -73,6 +73,7 @@ public:
     Result* addTuple(Tuple&& toAdd);
 
     void reset();
+    void split();
 
     friend std::ostream& operator<<(std::ostream& os, const Result& toPrint);
 };

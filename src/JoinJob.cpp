@@ -28,6 +28,38 @@ JoinJob::JoinJob(HashTableJob& rHash,
 
 }
 
+JoinJob::JoinJob(HashTableJob& rHash,
+                 HashTableJob& sHash,
+                 const uint32_t bucket,
+                 const bool* usedRows,
+                 ResultContainer* toReuse) :
+        Callable(),
+        rHash(rHash),
+        sHash(sHash),
+        bucket(bucket),
+        usedRows(usedRows),
+        result(toReuse) {
+
+}
+
+JoinJob::JoinJob(HashTableJob& rHash,
+                 HashTableJob& sHash,
+                 const uint32_t bucket,
+                 const bool* usedRows,
+                 Result* toReuse) :
+        Callable(),
+        rHash(rHash),
+        sHash(sHash),
+        bucket(bucket),
+        usedRows(usedRows),
+        result(new ResultContainer(toReuse->getRelation().getArraySize(),
+                                   toReuse->getRelation().getSizeTableRows(),
+                                   0,
+                                   usedRows,
+                                   toReuse)) {
+
+}
+
 JoinJob::~JoinJob() {
     if (result != nullptr) {
         delete result;
@@ -62,13 +94,15 @@ void JoinJob::runInternal() {
     const HashTable* const rHashRes = rHash.waitAndGetResult();
     const HashTable* sHashRes =
             sHash.getFinished() ? sHash.waitAndGetResult() : nullptr;
-    result = new ResultContainer((sHashRes == nullptr) ? ((rHashRes->getTuplesInBucket(bucket))
-                                                          * (rHashRes->getTuplesInBucket(bucket))) :
-                                                         ((rHashRes->getTuplesInBucket(bucket))
-                                                          * (sHashRes->getTuplesInBucket(bucket))),
-                                 rHashRes->getSizeTableRows(),
-                                 0,
-                                 usedRows);
+    if (result == nullptr) {
+        result = new ResultContainer((sHashRes == nullptr) ? ((rHashRes->getTuplesInBucket(bucket))
+                                                              * (rHashRes->getTuplesInBucket(bucket))) :
+                                                             ((rHashRes->getTuplesInBucket(bucket))
+                                                              * (sHashRes->getTuplesInBucket(bucket))),
+                                     rHashRes->getSizeTableRows(),
+                                     0,
+                                     usedRows);
+    }
     if (rHashRes->getTuplesInBucket(bucket) == 0) {
         CO_IFDEBUG(consoleOutput,
                    "Skipping bucket " << bucket << ": 0 rows [R=" << rHashRes->getTuplesInBucket(bucket) << "]");

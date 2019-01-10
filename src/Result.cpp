@@ -128,7 +128,12 @@ void Result::reset() {
     Result* currResult = this;
     do {
         currResult->relation->reset();
+        currResult = currResult->next;
     } while (currResult != nullptr);
+}
+
+void Result::split() {
+    next = nullptr;
 }
 
 std::ostream& operator<<(std::ostream& os, const Result& toPrint) {

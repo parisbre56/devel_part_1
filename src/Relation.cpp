@@ -19,6 +19,7 @@ Relation::Relation(uint64_t arraySize,
                    size_t sizePayloads,
                    bool* usedRows) :
         numTuples(0),
+        highWaterMark(0),
         arraySize(arraySize),
         tuples(new Tuple*[arraySize]),
         usedRows(
@@ -35,6 +36,7 @@ Relation::Relation(uint64_t arraySize,
                    uint64_t numTuples,
                    bool* usedRows) :
         numTuples(numTuples),
+        highWaterMark(numTuples),
         arraySize(arraySize),
         tuples(new Tuple*[arraySize] {/* init to nullptr */}),
         usedRows(
@@ -47,6 +49,7 @@ Relation::Relation(uint64_t arraySize,
 
 Relation::Relation(const Relation& toCopy) :
         numTuples(toCopy.numTuples),
+        highWaterMark(toCopy.numTuples),
         arraySize(toCopy.arraySize),
         tuples(new Tuple*[toCopy.arraySize]),
         usedRows(new bool[toCopy.sizeTableRows]),
@@ -61,6 +64,7 @@ Relation::Relation(const Relation& toCopy) :
 
 Relation::Relation(const Relation& toCopy, bool * const usedRows) :
         numTuples(toCopy.numTuples),
+        highWaterMark(toCopy.numTuples),
         arraySize(toCopy.arraySize),
         tuples(new Tuple*[toCopy.arraySize]),
         usedRows(usedRows),
@@ -74,6 +78,7 @@ Relation::Relation(const Relation& toCopy, bool * const usedRows) :
 
 Relation::Relation(Relation&& toMove) :
         numTuples(toMove.numTuples),
+        highWaterMark(toMove.highWaterMark),
         arraySize(toMove.arraySize),
         tuples(toMove.tuples),
         usedRows(toMove.usedRows),
@@ -87,7 +92,7 @@ Relation::Relation(Relation&& toMove) :
 Relation::~Relation() {
     //Delete all copies if this hasn't been moved
     if (tuples != nullptr) {
-        for (uint64_t i = 0; i < numTuples; ++i) {
+        for (uint64_t i = 0; i < highWaterMark; ++i) {
             if (tuples[i] != nullptr) {
                 delete tuples[i];
             }
@@ -173,7 +178,13 @@ void Relation::addTuple(Tuple& tuple) {
                             + to_string(arraySize)
                             + "]");
     }
-    tuples[numTuples++] = new Tuple(tuple);
+    if (numTuples < highWaterMark) {
+        *(tuples[numTuples++]) = tuple;
+    }
+    else {
+        tuples[numTuples++] = new Tuple(tuple);
+        highWaterMark = numTuples;
+    }
 }
 void Relation::addTuple(Tuple&& tuple) {
     if (numTuples >= arraySize) {
@@ -183,7 +194,13 @@ void Relation::addTuple(Tuple&& tuple) {
                             + to_string(arraySize)
                             + "]");
     }
-    tuples[numTuples++] = new Tuple(move(tuple));
+    if (numTuples < highWaterMark) {
+        *(tuples[numTuples++]) = move(tuple);
+    }
+    else {
+        tuples[numTuples++] = new Tuple(move(tuple));
+        highWaterMark = numTuples;
+    }
 }
 
 /** Set the tuple at the given index. Use very carefully.
@@ -207,9 +224,6 @@ const Tuple& Relation::getTuple(uint64_t index) const {
 }
 
 void Relation::reset() { //TODO can be made more efficient by reusing tuples
-    for (uint64_t i = 0; i < numTuples; ++i) {
-        delete tuples[i];
-    }
     numTuples = 0;
 }
 
@@ -224,8 +238,10 @@ void Relation::reset() { //TODO can be made more efficient by reusing tuples
 std::ostream& operator<<(std::ostream& os, const Relation& toPrint) {
     os << "[Relation array_size="
        << toPrint.arraySize
-       << ", num_tuples="
+       << ", numTuples="
        << toPrint.numTuples
+       << ", highWaterMark="
+       << toPrint.highWaterMark
        << ", sizeTableRows="
        << toPrint.sizeTableRows
        << ", sizePayloads="

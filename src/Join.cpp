@@ -39,6 +39,7 @@ Join::Join(const TableLoader& tableLoader,
         sumColumnNum(0),
         sumColumns(new const TableColumn*[arraySize]),
         resultContainers(nullptr),
+        reuseContainer(nullptr),
         tableStats(nullptr),
         oldOrder(nullptr),
         newOrder(nullptr),
@@ -726,11 +727,11 @@ JoinSumResult Join::performJoin() {
                 return retVal;
             }
 
-            ResultContainer* newResult = new ResultContainer(
+            ResultContainer* newResult =
                     (relL.getNumTuples() >= relR.getNumTuples()) ? radixHashJoin(relR,
                                                                                  relL) :
                                                                    radixHashJoin(relL,
-                                                                                 relR));
+                                                                                 relR);
             CO_IFDEBUG(consoleOutput, "Join result: "<< *newResult);
 
             //Delete old results and store new results
@@ -943,7 +944,7 @@ MultipleColumnStats Join::loadStats(const uint32_t table) const {
 }
 
 /** relR is stored in key, relS is stored in value **/
-ResultContainer Join::radixHashJoin(const Relation& relR,
+ResultContainer* Join::radixHashJoin(const Relation& relR,
                                     const Relation& relS) {
     ConsoleOutput consoleOutput("RadixHashJoin");
 //consoleOutput.errorOutput() << "JOIN EXECUTION STARTED" << endl;
@@ -958,16 +959,67 @@ ResultContainer Join::radixHashJoin(const Relation& relR,
     //CO_IFDEBUG(consoleOutput, "rHash=" << rHash);
     //CO_IFDEBUG(consoleOutput, "sHash=" << sHash);
 
-    ResultContainer retResult(0, relR.getSizeTableRows(), 0);
+    const bool splitContainer = reuseContainer != nullptr;
+    uint32_t usableSegments = 0;
+    uint32_t resultsPerBucket = 0;
+    const Result* startResult = nullptr;
+    if (splitContainer) {
+        ((ResultContainer*) reuseContainer)->reset();
+        const Result* toCheck = reuseContainer->getFirstResultBlock();
+        while (toCheck != nullptr) {
+            if (toCheck->getRelation().getArraySize() != 0) {
+                usableSegments++;
+            }
+            toCheck = toCheck->getNext();
+        }
+        resultsPerBucket = usableSegments / bitmask.getBuckets();
+        startResult = reuseContainer->getFirstResultBlock();
+    }
+    else {
+        reuseContainer = new ResultContainer(0, relR.getSizeTableRows(), 0);
+    }
     for (uint32_t i = 0; i < tableNum; ++i) {
         if (relR.getUsedRow(i) || relS.getUsedRow(i)) {
-            retResult.setUsedRow(i);
+            ((ResultContainer*) reuseContainer)->setUsedRow(i);
         }
     }
     buckets = bitmask.getBuckets();
     joinJobs = new JoinJob*[buckets] {/* init to nullptr */};
     for (uint32_t i = 0; i < buckets; ++i) {
-        joinJobs[i] = new JoinJob(rHash, sHash, i, retResult.getUsedRows());
+        if (splitContainer && usableSegments > 0) {
+            const Result* prevResult = nullptr;
+            const Result* endResult = startResult;
+            //If this is the final job, then don't split, give it the rest of the results
+            if (i != buckets - 1) {
+                uint32_t resultsLeft =
+                        (resultsPerBucket == 0) ? (1) : (resultsPerBucket);
+
+                while (resultsLeft > 0) {
+                    if (endResult->getRelation().getArraySize() != 0) {
+                        resultsLeft--;
+                        usableSegments--;
+                        prevResult = endResult;
+                    }
+                    endResult = endResult->getNext();
+                }
+                ((Result*) prevResult)->split();
+            }
+            if (i == 0) {
+                ((ResultContainer*) reuseContainer)->relenquish();
+            }
+            joinJobs[i] = new JoinJob(rHash,
+                                      sHash,
+                                      i,
+                                      reuseContainer->getUsedRows(),
+                                      (Result*) startResult);
+            startResult = endResult;
+        }
+        else {
+            joinJobs[i] = new JoinJob(rHash,
+                                      sHash,
+                                      i,
+                                      reuseContainer->getUsedRows());
+        }
         joinExecutor.addToQueue(joinJobs[i]);
     }
     for (uint32_t i = 0; i < buckets; ++i) {
@@ -977,16 +1029,17 @@ ResultContainer Join::radixHashJoin(const Relation& relR,
                        "Skipping job with empty result [bucket="<<i<<", joinJob="<<*(joinJobs[i])<<", toMerge="<<toMerge<<"]");
         }
         else {
-            retResult.mergeResult(move(toMerge));
+            ((ResultContainer*) reuseContainer)->mergeResult(move(toMerge));
         }
         delete joinJobs[i];
         joinJobs[i] = nullptr;
     }
     delete[] joinJobs;
     joinJobs = nullptr;
-
+    ResultContainer* retVal = (ResultContainer*) (reuseContainer);
+    reuseContainer = nullptr;
     //consoleOutput.errorOutput() << "JOIN EXECUTION ENDED" << endl;
-    return retResult;
+    return retVal;
 }
 
 bool Join::failsFilters(uint32_t filtersToApplyNum,
@@ -1005,7 +1058,7 @@ bool Join::failsFilters(uint32_t filtersToApplyNum,
 
 Relation Join::loadRelation(const uint32_t tableReference,
                             const uint32_t colsToProcessNum,
-                            const TableColumn* const colsToProcess) const {
+                            const TableColumn* const colsToProcess) {
     ConsoleOutput consoleOutput("Join::loadRelation");
     if (preloadTableJobs != nullptr
         && preloadTableJobs[tableReference] != nullptr) {
@@ -1087,6 +1140,7 @@ Relation Join::loadRelation(const uint32_t tableReference,
         }
         return retVal;
     }
+    reuseContainer = resultContainerLoaded;
 //Else, if resultContainerLoaded is not null (i.e. table was part of a previously joined relation)
     return resultContainerLoaded->loadToRelation(hashExecutor,
                                                  colsToProcessNum,

@@ -15,8 +15,8 @@ using namespace std;
 Tuple::Tuple(uint32_t sizeTableRows, size_t sizePayloads) :
         sizeTableRows(sizeTableRows),
         sizePayloads(sizePayloads),
-        tableRows(new uint64_t[sizeTableRows] { }),
-        payloads(sizePayloads == 0 ? nullptr : new uint64_t[sizePayloads] { }) {
+        tableRows(new uint64_t[sizeTableRows]),
+        payloads(sizePayloads == 0 ? nullptr : new uint64_t[sizePayloads]) {
 }
 
 Tuple::Tuple(const Tuple& toCopy) :

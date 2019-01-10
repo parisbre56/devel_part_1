@@ -36,7 +36,8 @@ public:
     ResultContainer(uint64_t blockSize,
                     uint32_t sizeTableRows,
                     size_t sizePayloads,
-                    const bool* usedRows = nullptr);
+                    const bool* usedRows = nullptr,
+                    Result* toReuse = nullptr);
     ResultContainer(const ResultContainer& toCopy);
     ResultContainer(ResultContainer&& toMove);
     ResultContainer& operator=(const ResultContainer& toCopy);
@@ -49,6 +50,7 @@ public:
     void addTuple(Tuple&& toAdd);
     /** Reset the container without releasing storage **/
     void reset();
+    void relenquish();
     uint64_t getResultCount() const;
     const bool * getUsedRows() const;
     void setUsedRow(uint32_t col);

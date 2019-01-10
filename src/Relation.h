@@ -23,6 +23,7 @@ class Relation;
 class Relation {
 protected:
     uint64_t numTuples;
+    uint64_t highWaterMark;
     uint64_t arraySize;
     Tuple** tuples;
     /** The tables contained in this tuple **/
