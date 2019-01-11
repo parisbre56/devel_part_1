@@ -646,6 +646,8 @@ JoinSumResult Join::performJoin() {
                << tableLoader.getTable(tables[currentSubset.getTableOrder()[0]]).getRows()
                << ", predictedRows="
                << currentSubset.getStats()[0]->getColumnStats()[0].getTotalRows()
+               << ", rowSum="
+               << currentSubset.getRowSum()[0]
                << "]";
             cerr << ss.str() << endl;
         }
@@ -757,6 +759,8 @@ JoinSumResult Join::performJoin() {
                        << 0
                        << ", predictedRows="
                        << currentSubset.getStats()[subsetTableIndex]->getColumnStats()[0].getTotalRows()
+                       << ", rowSum="
+                       << currentSubset.getRowSum()[subsetTableIndex]
                        << "]";
                     cerr << ss.str() << endl;
                 }
@@ -786,6 +790,8 @@ JoinSumResult Join::performJoin() {
                    << newResult->getResultCount()
                    << ", predictedRows="
                    << currentSubset.getStats()[subsetTableIndex]->getColumnStats()[0].getTotalRows()
+                   << ", rowSum="
+                   << currentSubset.getRowSum()[subsetTableIndex]
                    << "]";
                 cerr << ss.str() << endl;
             }

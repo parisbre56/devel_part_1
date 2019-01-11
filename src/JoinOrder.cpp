@@ -17,7 +17,8 @@ JoinOrder::JoinOrder(uint32_t tables) :
         arraySize(tables),
         orderedTables(0),
         tableOrder(new uint32_t[tables]),
-        stats(new const MultipleColumnStats*[tables]) {
+        stats(new const MultipleColumnStats*[tables]),
+        rowSum(new uint64_t[tables]) {
 }
 
 JoinOrder::JoinOrder(uint32_t tables,
@@ -31,10 +32,12 @@ JoinOrder::JoinOrder(const JoinOrder& toCopy) :
         arraySize(toCopy.arraySize),
         orderedTables(toCopy.orderedTables),
         tableOrder(new uint32_t[toCopy.arraySize]),
-        stats(new const MultipleColumnStats*[toCopy.arraySize]) {
+        stats(new const MultipleColumnStats*[toCopy.arraySize]),
+        rowSum(new uint64_t[toCopy.arraySize]) {
     memcpy(tableOrder,
            toCopy.tableOrder,
            toCopy.orderedTables * sizeof(uint32_t));
+    memcpy(rowSum, toCopy.rowSum, toCopy.orderedTables * sizeof(uint64_t));
     for (uint32_t i = 0; i < toCopy.orderedTables; ++i) {
         stats[i] = new MultipleColumnStats(*(toCopy.stats[i]));
     }
@@ -43,9 +46,11 @@ JoinOrder::JoinOrder(JoinOrder&& toMove) :
         arraySize(toMove.arraySize),
         orderedTables(toMove.orderedTables),
         tableOrder(toMove.tableOrder),
-        stats(toMove.stats) {
+        stats(toMove.stats),
+        rowSum(toMove.rowSum) {
     toMove.tableOrder = nullptr;
     toMove.stats = nullptr;
+    toMove.rowSum = nullptr;
 }
 JoinOrder& JoinOrder::operator=(const JoinOrder& toCopy) {
     if (arraySize != toCopy.arraySize) {
@@ -63,6 +68,7 @@ JoinOrder& JoinOrder::operator=(const JoinOrder& toCopy) {
     memcpy(tableOrder,
            toCopy.tableOrder,
            toCopy.orderedTables * sizeof(uint32_t));
+    memcpy(rowSum, toCopy.rowSum, toCopy.orderedTables * sizeof(uint64_t));
     for (uint32_t i = 0; i < toCopy.orderedTables; ++i) {
         stats[i] = new MultipleColumnStats(*(toCopy.stats[i]));
     }
@@ -84,6 +90,8 @@ JoinOrder& JoinOrder::operator=(JoinOrder&& toMove) {
     toMove.tableOrder = nullptr;
     stats = toMove.stats;
     toMove.stats = nullptr;
+    rowSum = toMove.rowSum;
+    toMove.rowSum = nullptr;
     return *this;
 }
 
@@ -96,6 +104,9 @@ JoinOrder::~JoinOrder() {
             delete stats[i];
         }
         delete[] stats;
+    }
+    if (rowSum != nullptr) {
+        delete[] rowSum;
     }
 }
 
@@ -121,6 +132,10 @@ void JoinOrder::addTable(uint32_t table,
     }
     tableOrder[orderedTables] = table;
     stats[orderedTables] = new MultipleColumnStats(tableStats);
+    rowSum[orderedTables] =
+            (orderedTables == 0) ? tableStats.getColumnStats()[0].getTotalRows() :
+                                   tableStats.getColumnStats()[0].getTotalRows()
+                                   + rowSum[orderedTables - 1];
     orderedTables++;
 }
 
@@ -169,6 +184,10 @@ const uint32_t* JoinOrder::getTableOrder() const {
 
 const MultipleColumnStats* const * JoinOrder::getStats() const {
     return stats;
+}
+
+const uint64_t* JoinOrder::getRowSum() const {
+    return rowSum;
 }
 
 ostream& operator<<(ostream& os, const JoinOrder& toPrint) {
