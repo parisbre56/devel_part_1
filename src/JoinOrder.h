@@ -19,7 +19,7 @@ protected:
     uint32_t orderedTables;
     uint32_t* tableOrder;
     const MultipleColumnStats** stats;
-    uint64_t* rowSum;
+    double* rowSum;
 public:
     explicit JoinOrder(uint32_t tables);
     JoinOrder(uint32_t tables,
@@ -42,7 +42,7 @@ public:
     uint32_t getOrderedTables() const;
     const uint32_t* getTableOrder() const;
     const MultipleColumnStats* const * getStats() const;
-    const uint64_t* getRowSum() const;
+    const double* getRowSum() const;
 
     friend std::ostream& operator<<(std::ostream& os, const JoinOrder& toPrint);
 };
