@@ -14,15 +14,15 @@ using namespace std;
 ColumnStat::ColumnStat() :
         minVal(numeric_limits<uint64_t>::max()),
         maxVal(0),
-        totalRows(0),
-        uniqueValues(0) {
+        totalRows(0.0),
+        uniqueValues(0.0) {
 
 }
 
 ColumnStat::ColumnStat(uint64_t minVal,
                        uint64_t maxVal,
-                       uint64_t totalRows,
-                       uint64_t uniqueValues) :
+                       double totalRows,
+                       double uniqueValues) :
         minVal(minVal),
         maxVal(maxVal),
         totalRows(totalRows),
@@ -46,24 +46,20 @@ void ColumnStat::setMinVal(uint64_t minVal) {
     this->minVal = minVal;
 }
 
-uint64_t ColumnStat::getTotalRows() const {
+double ColumnStat::getTotalRows() const {
     return totalRows;
 }
 
-void ColumnStat::setTotalRows(uint64_t totalRows) {
+void ColumnStat::setTotalRows(double totalRows) {
     this->totalRows = totalRows;
 }
 
-uint64_t ColumnStat::getUniqueValues() const {
+double ColumnStat::getUniqueValues() const {
     return uniqueValues;
 }
 
-void ColumnStat::setUniqueValues(uint64_t uniqueValues) {
+void ColumnStat::setUniqueValues(double uniqueValues) {
     this->uniqueValues = uniqueValues;
-}
-
-void ColumnStat::incrementUniqueValues() {
-    ++uniqueValues;
 }
 
 ostream& operator<<(ostream& os, const ColumnStat& toPrint) {

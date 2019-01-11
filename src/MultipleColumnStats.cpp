@@ -49,16 +49,18 @@ MultipleColumnStats::MultipleColumnStats(const Table& table) :
         const uint64_t* const currCol = table.getCol(currColNum);
         ColumnStat& currStat = columnStats[currColNum];
         uint64_t minVal = currStat.getMinVal();
+        uint64_t uniqueValues = 0;
         for (uint64_t i = 0; i < rows; ++i) {
             uint64_t encounteredIndex = currCol[i] - minVal;
             if (encounteredIndex >= maxLength) {
-                currStat.incrementUniqueValues();
+                uniqueValues++;
             }
             else if (!(encountered[encounteredIndex])) {
                 encountered[encounteredIndex] = true;
-                currStat.incrementUniqueValues();
+                uniqueValues++;
             }
         }
+        currStat.setUniqueValues(uniqueValues);
         uint64_t maxUsedRows = currStat.getMaxVal() - currStat.getMinVal() + 1;
         if (maxUsedRows > maxLength) {
             maxUsedRows = maxLength;
@@ -305,7 +307,7 @@ MultipleColumnStats MultipleColumnStats::filterSame(size_t colA,
 
     //Special case of joining with the same column
     if (colA == colB) {
-        const uint64_t totalRows = (statsColA.getTotalRows()
+        const double totalRows = (statsColA.getTotalRows()
                                     * statsColA.getTotalRows())
                                    / (statsColANew.getMaxVal()
                                       - statsColANew.getMinVal()
@@ -332,7 +334,7 @@ MultipleColumnStats MultipleColumnStats::filterSame(size_t colA,
         statsColANew.setMaxVal(statsColB.getMaxVal());
     }
     //No need to set anything else, we can be certain they will have the correct value
-    const uint64_t totalRows = statsColA.getTotalRows()
+    const double totalRows = statsColA.getTotalRows()
                                / (statsColANew.getMaxVal()
                                   - statsColANew.getMinVal()
                                   + 1);
@@ -394,10 +396,10 @@ MultipleColumnStats MultipleColumnStats::join(size_t colThis,
     const uint64_t range = statsColThisNew.getMaxVal()
                            - statsColThisNew.getMinVal()
                            + 1;
-    const uint64_t totalRows = (statsColThis.getTotalRows()
+    const double totalRows = (statsColThis.getTotalRows()
                                 * statsColOther.getTotalRows())
                                / range;
-    const uint64_t uniqueRows = (statsColThis.getUniqueValues()
+    const double uniqueRows = (statsColThis.getUniqueValues()
                                  * statsColOther.getUniqueValues())
                                 / range;
     statsColThisNew.setTotalRows(totalRows);
