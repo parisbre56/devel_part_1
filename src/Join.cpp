@@ -383,7 +383,9 @@ JoinSumResult Join::performJoin() {
         JoinOrder toAdd(tableNum, i);
         tableStats[i] = new MultipleColumnStats(loadStats(i));
         MultipleColumnStats stats(*(tableStats[i]));
-        newOrder->addIfBetterMove(move(toAdd), move(stats));
+        newOrder->addIfBetterMove(move(toAdd),
+                                  move(stats),
+                                  stats.getColumnStats()[0].getTotalRows());
     }
     //Find joinOrder
     JoinOrderContainer finalOrder(tableNum);
@@ -396,6 +398,7 @@ JoinSumResult Join::performJoin() {
                 ++subsetIndex) {
             const JoinOrder& currentSubset = *((oldOrder->getJoinOrders())[subsetIndex]);
             const MultipleColumnStats& currentStat = *((oldOrder->getStats())[subsetIndex]);
+            const double currentRowSum = oldOrder->getRowSums()[subsetIndex];
             bool notAdded = true;
             for (uint32_t toAdd = 0; toAdd < tableNum; ++toAdd) {
                 //Skip tables that are already processed in this subset
@@ -441,9 +444,11 @@ JoinSumResult Join::performJoin() {
                 notAdded = false;
                 //Add new subset if better
                 newOrder->addIfBetterMove(currentSubset.addTableNew(toAdd),
-                                          move(newStat));
+                                          move(newStat),
+                                          currentRowSum
+                                          + newStat.getColumnStats()[0].getTotalRows());
             }
-            //Disconnected tables need to be added in case of cartesian products
+            //Disconnected trees need to be added in case of cartesian products
             if (notAdded && currentSubset.getOrderedTables() > 1) {
                 finalOrder.stealEntry(*oldOrder, subsetIndex);
             }
@@ -463,7 +468,7 @@ JoinSumResult Join::performJoin() {
             ++subsetIndex) {
         finalOrder.stealEntry(*newOrder, subsetIndex);
     }
-    CO_IFDEBUG(consoleOutput, "finalOrder="<<finalOrder);
+    CO_ERROR(consoleOutput, "finalOrder="<<finalOrder);
 
     //Now that we've found the join order we no longer need these things, so free up some space
     delete newOrder;

@@ -23,6 +23,7 @@ protected:
     uint32_t used;
     JoinOrder** joinOrders;
     MultipleColumnStats** stats;
+    double* rowSums;
 
     void increaseSize();
 public:
@@ -37,9 +38,13 @@ public:
     /** Returns size for not found **/
     uint32_t getIndexForSet(const JoinOrder& asSet) const;
     /** True if added, false otherwise **/
-    bool addIfBetter(const JoinOrder& toAdd, const MultipleColumnStats& stat);
+    bool addIfBetter(const JoinOrder& toAdd,
+                     const MultipleColumnStats& stat,
+                     const double rowSum);
     /** True if added, false otherwise **/
-    bool addIfBetterMove(JoinOrder&& toAdd, MultipleColumnStats&& stat);
+    bool addIfBetterMove(JoinOrder&& toAdd,
+                         MultipleColumnStats&& stat,
+                         const double rowSum);
     /** Move from the given container the entry at the given index to this container if it is better than the existing for that subset.
      * If it is moved, the entry at the given container is left in an unusable state.
      * True if added, false otherwise **/
@@ -50,6 +55,7 @@ public:
     const MultipleColumnStats * getStatForSet(const JoinOrder& asSet) const;
     const JoinOrder * const * getJoinOrders() const;
     const MultipleColumnStats * const * getStats() const;
+    const double * getRowSums() const;
     uint32_t getSize() const;
     uint32_t getUsed() const;
 

@@ -20,7 +20,8 @@ JoinOrderContainer::JoinOrderContainer(uint32_t size) :
         size(size),
         used(0),
         joinOrders(new JoinOrder*[size]),
-        stats(new MultipleColumnStats*[size]) {
+        stats(new MultipleColumnStats*[size]),
+        rowSums(new double[size]) {
 
 }
 
@@ -37,6 +38,9 @@ JoinOrderContainer::~JoinOrderContainer() {
         }
         delete[] stats;
     }
+    if (rowSums != nullptr) {
+        delete[] rowSums;
+    }
 }
 
 /** Returns size for not found **/
@@ -50,7 +54,7 @@ uint32_t JoinOrderContainer::getIndexForSet(const JoinOrder& asSet) const {
 }
 
 void JoinOrderContainer::increaseSize() {
-    uint32_t oldSize = size;
+    uint32_t oldSize = used;
     size += JOINORDERCONTAINER_H_DEFAULT_SIZE_INCREASE;
 
     JoinOrder** oldJoinOrders = joinOrders;
@@ -62,27 +66,33 @@ void JoinOrderContainer::increaseSize() {
     stats = new MultipleColumnStats*[size];
     memcpy(stats, oldStats, oldSize * sizeof(MultipleColumnStats*));
     delete[] oldStats;
+
+    double* oldSum = rowSums;
+    rowSums = new double[size];
+    memcpy(rowSums, oldSum, oldSize * sizeof(double));
 }
 
 /** True if added, false otherwise **/
 bool JoinOrderContainer::addIfBetter(const JoinOrder& toAdd,
-                                     const MultipleColumnStats& stat) {
-    if (used == size) {
-        increaseSize();
-    }
+                                     const MultipleColumnStats& stat,
+                                     const double rowSum) {
     uint32_t index = getIndexForSet(toAdd);
     //Does not already exist
     if (index == size) {
+        if (used == size) {
+            increaseSize();
+        }
         joinOrders[used] = new JoinOrder(toAdd);
         stats[used] = new MultipleColumnStats(stat);
+        rowSums[used] = rowSum;
         used++;
         return true;
     }
     //Else, it already exists. Check if the new one is better
-    if (stats[index]->getColumnStats()->getTotalRows()
-        > stat.getColumnStats()->getTotalRows()) {
+    if (rowSums[index] > rowSum) {
         *(joinOrders[index]) = toAdd;
         *(stats[index]) = stat;
+        rowSums[index] = rowSum;
         return true;
     }
     //Else, if the old one is better
@@ -90,23 +100,25 @@ bool JoinOrderContainer::addIfBetter(const JoinOrder& toAdd,
 }
 
 bool JoinOrderContainer::addIfBetterMove(JoinOrder&& toAdd,
-                                         MultipleColumnStats&& stat) {
-    if (used == size) {
-        increaseSize();
-    }
+                                         MultipleColumnStats&& stat,
+                                         const double rowSum) {
     uint32_t index = getIndexForSet(toAdd);
     //Does not already exist
     if (index == size) {
+        if (used == size) {
+            increaseSize();
+        }
         joinOrders[used] = new JoinOrder(move(toAdd));
         stats[used] = new MultipleColumnStats(move(stat));
+        rowSums[used] = rowSum;
         used++;
         return true;
     }
     //Else, it already exists. Check if the new one is better
-    if (stats[index]->getColumnStats()->getTotalRows()
-        > stat.getColumnStats()->getTotalRows()) {
+    if (rowSums[index] > rowSum) {
         *(joinOrders[index]) = move(toAdd);
         *(stats[index]) = move(stat);
+        rowSums[index] = rowSum;
         return true;
     }
     //Else, if the old one is better
@@ -123,7 +135,8 @@ bool JoinOrderContainer::stealEntry(JoinOrderContainer& stealFrom,
                             + "]");
     }
     return addIfBetterMove(move(*(stealFrom.joinOrders[index])),
-                           move(*(stealFrom.stats[index])));
+                           move(*(stealFrom.stats[index])),
+                           stealFrom.rowSums[index]);
 }
 
 const JoinOrder * JoinOrderContainer::getOrderForSet(const JoinOrder& asSet) const {
@@ -148,6 +161,10 @@ const JoinOrder * const * JoinOrderContainer::getJoinOrders() const {
 
 const MultipleColumnStats * const * JoinOrderContainer::getStats() const {
     return stats;
+}
+
+const double * JoinOrderContainer::getRowSums() const {
+    return rowSums;
 }
 
 uint32_t JoinOrderContainer::getSize() const {
@@ -184,5 +201,17 @@ ostream& operator<<(ostream& os, const JoinOrderContainer& toPrint) {
         }
         os << "]";
     }
+    os << ", rowSums=";
+    if (toPrint.rowSums == nullptr) {
+        os << "null";
+    }
+    else {
+        os << "[";
+        for (uint32_t i = 0; i < toPrint.used; ++i) {
+            os << "\n\t" << toPrint.rowSums[i];
+        }
+        os << "]";
+    }
+    os << "]";
     return os;
 }
