@@ -11,6 +11,7 @@ class ConsoleOutput;
 
 #include <string>
 #include <ostream>
+#include <sstream>
 
 //Only executes debug code if debug is enabled
 #ifdef NDEBUG
@@ -18,6 +19,8 @@ class ConsoleOutput;
 #else
 #define CO_IFDEBUG(consoleOutput, toPrint) if(consoleOutput.getDebugEnabled()) {consoleOutput.debugOutput() << toPrint << std::endl;}
 #endif //NDEBUG
+
+#define CO_ERROR(consoleOutput, toPrint) {std::stringstream errString; errString << toPrint; consoleOutput.errorOutput(errString.str());}
 
 class ConsoleOutput {
 protected:
@@ -35,6 +38,8 @@ public:
 
     std::ostream& debugOutput() const;
     std::ostream& errorOutput() const;
+    void debugOutput(std::string toPrint) const;
+    void errorOutput(std::string toPrint) const;
 };
 
 #endif /* CONSOLEOUTPUT_H_ */
