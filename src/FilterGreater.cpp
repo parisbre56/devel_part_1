@@ -6,6 +6,8 @@
  */
 
 #include "FilterGreater.h"
+#include "FilterLesser.h"
+#include "FilterRange.h"
 
 using namespace std;
 
@@ -22,6 +24,40 @@ MultipleColumnStats FilterGreater::applyFilter(const MultipleColumnStats& stat) 
     return stat.filterRangeGreater(col, value);
 }
 
+Filter* FilterGreater::mergeIfPossible(const Filter* const toMergeWith) const {
+    //Only matching table/col
+    if (toMergeWith->getTable() != table || toMergeWith->getCol() != col) {
+        return nullptr;
+    }
+    {
+        const FilterGreater* const filterGreater = dynamic_cast<const FilterGreater*>(toMergeWith);
+        if (filterGreater != nullptr) {
+            return new FilterGreater(table,
+                                     col,
+                                     (filterGreater->value > value) ? filterGreater->value :
+                                                                      value);
+        }
+    }
+    {
+        const FilterLesser* const filterLesser = dynamic_cast<const FilterLesser*>(toMergeWith);
+        if (filterLesser != nullptr) {
+            return new FilterRange(table, col, value, filterLesser->getValue());
+        }
+    }
+    {
+        const FilterRange* const filterRange = dynamic_cast<const FilterRange*>(toMergeWith);
+        if (filterRange != nullptr) {
+            return new FilterRange(table,
+                                   col,
+                                   (filterRange->getMinValueExclusive() > value) ? filterRange->getMinValueExclusive() :
+                                                                                   value,
+                                   filterRange->getMaxValueExclusive());
+        }
+    }
+    //Can't merge with other filters
+    return nullptr;
+}
+
 void FilterGreater::write(ostream& os) const {
     os << "[FilterGreater table="
        << table
@@ -33,7 +69,7 @@ void FilterGreater::write(ostream& os) const {
 }
 
 FilterGreater::~FilterGreater() {
-    //Do nothing
+//Do nothing
 }
 
 std::ostream& operator<<(std::ostream& os, const FilterGreater& toPrint) {

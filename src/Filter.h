@@ -36,6 +36,8 @@ public:
     virtual bool passesFilter(const Table& table, uint64_t rownum) const = 0;
     /** Apply the filter to the given stats and produce new stats **/
     virtual MultipleColumnStats applyFilter(const MultipleColumnStats& stat) const = 0;
+    /** Create a new merged filter if possible, else return null **/
+    virtual Filter* mergeIfPossible(const Filter* const toMergeWith) const = 0;
     uint32_t getTable() const;
     size_t getCol() const;
 

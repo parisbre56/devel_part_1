@@ -6,6 +6,8 @@
  */
 
 #include "FilterLesser.h"
+#include "FilterGreater.h"
+#include "FilterRange.h"
 
 using namespace std;
 
@@ -20,6 +22,40 @@ bool FilterLesser::passesFilter(const Table& table, uint64_t rownum) const {
 
 MultipleColumnStats FilterLesser::applyFilter(const MultipleColumnStats& stat) const {
     return stat.filterRangeLesser(col, value);
+}
+
+Filter* FilterLesser::mergeIfPossible(const Filter* const toMergeWith) const {
+    //Only matching table/col
+    if (toMergeWith->getTable() != table || toMergeWith->getCol() != col) {
+        return nullptr;
+    }
+    {
+        const FilterGreater* const filterGreater = dynamic_cast<const FilterGreater*>(toMergeWith);
+        if (filterGreater != nullptr) {
+            return new FilterRange(table, col, filterGreater->getValue(), value);
+        }
+    }
+    {
+        const FilterLesser* const filterLesser = dynamic_cast<const FilterLesser*>(toMergeWith);
+        if (filterLesser != nullptr) {
+            return new FilterLesser(table,
+                                    col,
+                                    (filterLesser->value < value) ? filterLesser->value :
+                                                                    value);
+        }
+    }
+    {
+        const FilterRange* const filterRange = dynamic_cast<const FilterRange*>(toMergeWith);
+        if (filterRange != nullptr) {
+            return new FilterRange(table,
+                                   col,
+                                   filterRange->getMinValueExclusive(),
+                                   (filterRange->getMaxValueExclusive() < value) ? filterRange->getMaxValueExclusive() :
+                                                                                   value);
+        }
+    }
+    //Can't merge with other filters
+    return nullptr;
 }
 
 void FilterLesser::write(ostream& os) const {

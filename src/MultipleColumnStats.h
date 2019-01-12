@@ -41,9 +41,12 @@ public:
                                            const uint64_t greaterThan) const;
     MultipleColumnStats filterRangeLesser(const size_t col,
                                           const uint64_t lessThan) const;
-    MultipleColumnStats filterRange(size_t col,
-                                    uint64_t greaterOrEqualTo,
-                                    uint64_t lessThanOrEqualTo) const;
+    MultipleColumnStats filterRangeExclusive(const size_t col,
+                                             const uint64_t minValueExclusive,
+                                             const uint64_t maxValueExclusive) const;
+    MultipleColumnStats filterRange(const size_t col,
+                                    const uint64_t greaterOrEqualTo,
+                                    const uint64_t lessThanOrEqualTo) const;
     MultipleColumnStats filterSame(size_t colA, size_t colB) const;
     MultipleColumnStats join(size_t colThis,
                              const MultipleColumnStats& other,
