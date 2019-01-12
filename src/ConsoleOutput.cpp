@@ -91,3 +91,15 @@ ostream& ConsoleOutput::errorOutput() const {
     return output(cerr, "ERROR", label);
 }
 
+void ConsoleOutput::debugOutput(string toPrint) const {
+    stringstream out;
+    output(out, "DEBUG", label);
+    out << toPrint;
+    cerr << out.str() << endl;
+}
+void ConsoleOutput::errorOutput(string toPrint) const {
+    stringstream out;
+    output(out, "ERROR", label);
+    out << toPrint;
+    cerr << out.str() << endl;
+}
