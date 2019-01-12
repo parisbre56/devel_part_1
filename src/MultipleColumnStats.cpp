@@ -233,9 +233,35 @@ MultipleColumnStats MultipleColumnStats::filterRangeLesser(const size_t col,
     return filterRange(col, getColumnStats()[col].getMinVal(), lessThan - 1);
 }
 
-MultipleColumnStats MultipleColumnStats::filterRange(size_t col,
-                                                     uint64_t greaterOrEqualTo,
-                                                     uint64_t lessThanOrEqualTo) const {
+MultipleColumnStats MultipleColumnStats::filterRangeExclusive(const size_t col,
+                                                              const uint64_t minValueExclusive,
+                                                              const uint64_t maxValueExclusive) const {
+    if (col >= cols) {
+        throw runtime_error("MultipleColumnStats::filterRangeExclusive index out of bounds [col="
+                            + to_string(col)
+                            + ", cols="
+                            + to_string(cols)
+                            + "]");
+    }
+    if (maxValueExclusive == 0
+        || minValueExclusive == numeric_limits<uint64_t>::max()) {
+        MultipleColumnStats retVal(*this);
+        for (size_t i = 0; i < cols; ++i) {
+            ColumnStat& currColStatNew = retVal.columnStats[i];
+            currColStatNew.setTotalRows(0);
+            currColStatNew.setUniqueValues(0);
+        }
+        return retVal;
+    }
+    return filterRange(col, minValueExclusive + 1, maxValueExclusive - 1);
+}
+
+MultipleColumnStats MultipleColumnStats::filterRange(const size_t col,
+                                                     const uint64_t greaterOrEqualTo,
+                                                     const uint64_t lessThanOrEqualTo) const {
+    if (greaterOrEqualTo == lessThanOrEqualTo) {
+        return filterEquals(col, greaterOrEqualTo);
+    }
     if (col >= cols) {
         throw runtime_error("MultipleColumnStats::filterRange index out of bounds [col="
                             + to_string(col)

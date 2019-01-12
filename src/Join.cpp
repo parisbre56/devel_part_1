@@ -232,20 +232,33 @@ void Join::addTableFilter(uint32_t table,
                             + to_string(tableLoader.getTable(tables[table]).getCols())
                             + "]");
     }
+    Filter* filterToAdd = nullptr;
     switch (type) {
     case '>':
-        filters[filterNum++] = new FilterGreater(table, column, filterNumber);
+        filterToAdd = new FilterGreater(table, column, filterNumber);
         break;
     case '=':
-        filters[filterNum++] = new FilterEquals(table, column, filterNumber);
+        filterToAdd = new FilterEquals(table, column, filterNumber);
         break;
     case '<':
-        filters[filterNum++] = new FilterLesser(table, column, filterNumber);
+        filterToAdd = new FilterLesser(table, column, filterNumber);
         break;
     default:
         throw runtime_error("Unknown filter type '" + to_string(type) + "'");
         break;
     }
+    //scan existing filters first and check if it can be merged with one of them
+    for (uint32_t i = 0; i < filterNum; ++i) {
+        Filter* mergedFilter = filters[i]->mergeIfPossible(filterToAdd);
+        if (mergedFilter != nullptr) {
+            delete filterToAdd;
+            delete filters[i];
+            filters[i] = mergedFilter;
+            return;
+        }
+    }
+    //Else, if we didn't merge with any, add it as a new filter
+    filters[filterNum++] = filterToAdd;
 }
 void Join::addSumColumn(uint32_t table, size_t column) {
     if (sumColumns == nullptr) {

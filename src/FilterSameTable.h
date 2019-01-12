@@ -30,6 +30,7 @@ public:
 
     bool passesFilter(const Table& table, uint64_t rownum) const;
     MultipleColumnStats applyFilter(const MultipleColumnStats& stat) const;
+    Filter* mergeIfPossible(const Filter* const toMergeWith) const;
 
     friend std::ostream& operator<<(std::ostream& os,
                                     const FilterSameTable& toPrint);

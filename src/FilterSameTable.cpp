@@ -33,6 +33,11 @@ MultipleColumnStats FilterSameTable::applyFilter(const MultipleColumnStats& stat
     return stat.filterSame(col, colB);
 }
 
+Filter* FilterSameTable::mergeIfPossible(const Filter* const toMergeWith) const {
+    //Never merge
+    return nullptr;
+}
+
 void FilterSameTable::write(ostream& os) const {
     os
     << "[FilterLesser table="

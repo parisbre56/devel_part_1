@@ -22,6 +22,11 @@ MultipleColumnStats FilterEquals::applyFilter(const MultipleColumnStats& stat) c
     return stat.filterEquals(col, value);
 }
 
+Filter* FilterEquals::mergeIfPossible(const Filter* const toMergeWith) const {
+    //Never merge
+    return nullptr;
+}
+
 void FilterEquals::write(ostream& os) const {
     os << "[FilterEquals table="
        << table
