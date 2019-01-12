@@ -468,7 +468,7 @@ JoinSumResult Join::performJoin() {
             ++subsetIndex) {
         finalOrder.stealEntry(*newOrder, subsetIndex);
     }
-    CO_ERROR(consoleOutput, "finalOrder="<<finalOrder);
+    CO_IFDEBUG(consoleOutput, "finalOrder="<<finalOrder);
 
     //Now that we've found the join order we no longer need these things, so free up some space
     delete newOrder;
