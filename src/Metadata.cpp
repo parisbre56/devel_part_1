@@ -18,13 +18,17 @@ Metadata::Metadata(const TableLoader& tableLoader, uint32_t arraySize) :
         arraySize(arraySize),
         joinsInBatch(0),
         hashExecutor(new Executor(METADATA_H_THREAD_NUM_HASH,
-        METADATA_H_QUEUE_SIZE)),
+        METADATA_H_QUEUE_SIZE,
+                                  "Hash")),
         joinExecutor(new Executor(METADATA_H_THREAD_NUM_JOIN,
-        METADATA_H_QUEUE_SIZE)),
+        METADATA_H_QUEUE_SIZE,
+                                  "Join")),
         preloadExecutor(new Executor(METADATA_H_THREAD_NUM_PRELOAD,
-        METADATA_H_QUEUE_SIZE)),
+        METADATA_H_QUEUE_SIZE,
+                                     "Preload")),
         batchExecutor(new Executor(METADATA_H_THREAD_NUM_BATCH,
-        METADATA_H_QUEUE_SIZE_BATCH)) {
+        METADATA_H_QUEUE_SIZE_BATCH,
+                                   "Batch")) {
 
 }
 

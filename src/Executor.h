@@ -17,6 +17,7 @@ class Executor;
 
 class Executor {
 protected:
+    const std::string name;
     const timespec queueWait;
     const uint32_t threadNum;
     const uint32_t queueSize;
@@ -37,7 +38,7 @@ protected:
     void* thread_routine(void* ignored);
 
 public:
-    Executor(uint32_t threadNum, uint32_t queueSize);
+    Executor(uint32_t threadNum, uint32_t queueSize, const std::string name);
     Executor(const Executor& toCopy) = delete;
     Executor(Executor&& toMove) = delete;
     Executor& operator=(const Executor& toCopy) = delete;
@@ -47,6 +48,7 @@ public:
     void addToQueue(Runnable* toAdd);
     void doShutdown();
     void awaitShutdown();
+    std::string getName() const;
 
     friend std::ostream& operator<<(std::ostream& os, const Executor& toPrint);
 };

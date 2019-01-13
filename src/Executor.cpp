@@ -20,7 +20,8 @@
 
 using namespace std;
 
-Executor::Executor(uint32_t threadNum, uint32_t queueSize) :
+Executor::Executor(uint32_t threadNum, uint32_t queueSize, const string name) :
+        name(name),
         queueWait( { 10, 0 }),
         threadNum(threadNum),
         queueSize(queueSize),
@@ -103,7 +104,7 @@ Executor::~Executor() {
 
 void* Executor::thread_routine(void* ignored) {
     //TODO more deadlock safety? use robust mutex?
-    ConsoleOutput consoleOutput("Executor::thread_routine");
+    ConsoleOutput consoleOutput("Executor(" + name + ")::thread_routine");
     try {
         CO_IFDEBUG(consoleOutput, "Started executor");
 
@@ -379,6 +380,10 @@ void Executor::awaitShutdown() {
     for (uint32_t i = 0; i < threadNum; ++i) {
         pthread_join(threads[i], nullptr);
     }
+}
+
+string Executor::getName() const {
+    return name;
 }
 
 ostream& operator<<(ostream& os, const Executor& toPrint) {
