@@ -202,7 +202,7 @@ void* Executor::thread_routine(void* ignored) {
             queueEnd++;
             //Loop pointer around if we reached the end
             if (queueEnd >= queueSize) {
-                queueStart = 0;
+                queueEnd = 0;
             }
             used--;
             CO_IFDEBUG(consoleOutput,
