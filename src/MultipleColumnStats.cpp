@@ -89,7 +89,9 @@ MultipleColumnStats::MultipleColumnStats(const Table& table,
     }
     //Else, if this exceeds the size the stack can tolerate, use a temp file
     else {
-        int tempfd = open(tempFile.c_str(), O_RDWR | O_CREAT | O_TRUNC);
+        int tempfd = open(tempFile.c_str(),
+                          O_RDWR | O_CREAT | O_TRUNC,
+                          S_IRUSR | S_IWUSR);
         if (tempfd == -1) {
             throw runtime_error("Unable to open temp file '"
                                 + tempFile
