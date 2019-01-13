@@ -12,6 +12,12 @@
 
 #include <limits>
 
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <unistd.h>
+
 using namespace std;
 
 void updateOtherRows(size_t col,
@@ -19,7 +25,39 @@ void updateOtherRows(size_t col,
                      ColumnStat& colStatNew,
                      ColumnStat& colStat);
 
-MultipleColumnStats::MultipleColumnStats(const Table& table) :
+void MultipleColumnStats::setUniqueValues(const Table& table,
+                                          const uint64_t rows,
+                                          uint64_t maxLength,
+                                          bool* encountered) {
+    /* init to false */
+    for (size_t currColNum = 0; currColNum < cols; ++currColNum) {
+        const uint64_t* const currCol = table.getCol(currColNum);
+        ColumnStat& currStat = columnStats[currColNum];
+        uint64_t minVal = currStat.getMinVal();
+        uint64_t uniqueValues = 0;
+        for (uint64_t i = 0; i < rows; ++i) {
+            uint64_t encounteredIndex = currCol[i] - minVal;
+            if (encounteredIndex >= maxLength) {
+                uniqueValues++;
+            }
+            else if (!(encountered[encounteredIndex])) {
+                encountered[encounteredIndex] = true;
+                uniqueValues++;
+            }
+        }
+        currStat.setUniqueValues(uniqueValues);
+        uint64_t maxUsedRows = currStat.getMaxVal() - currStat.getMinVal() + 1;
+        if (maxUsedRows > maxLength) {
+            maxUsedRows = maxLength;
+        }
+        for (uint64_t i = 0; i < maxUsedRows; ++i) {
+            encountered[i] = false;
+        }
+    }
+}
+
+MultipleColumnStats::MultipleColumnStats(const Table& table,
+                                         const string tempFile) :
         cols(table.getCols()), columnStats(new ColumnStat[table.getCols()]) {
     const uint64_t rows = table.getRows();
     uint64_t maxLength = 0;
@@ -44,29 +82,81 @@ MultipleColumnStats::MultipleColumnStats(const Table& table) :
     if (maxLength > MULTIPLECOLUMNSTATS_H_MAX_UNIQUE_SIZE) {
         maxLength = MULTIPLECOLUMNSTATS_H_MAX_UNIQUE_SIZE;
     }
-    bool encountered[maxLength] {/* init to false */};
-    for (size_t currColNum = 0; currColNum < cols; ++currColNum) {
-        const uint64_t* const currCol = table.getCol(currColNum);
-        ColumnStat& currStat = columnStats[currColNum];
-        uint64_t minVal = currStat.getMinVal();
-        uint64_t uniqueValues = 0;
-        for (uint64_t i = 0; i < rows; ++i) {
-            uint64_t encounteredIndex = currCol[i] - minVal;
-            if (encounteredIndex >= maxLength) {
-                uniqueValues++;
-            }
-            else if (!(encountered[encounteredIndex])) {
-                encountered[encounteredIndex] = true;
-                uniqueValues++;
+    //If we can do all this in memory
+    else if (maxLength < MULTIPLECOLUMNSTATS_H_STACK_ARRAY_SIZE) {
+        bool encountered[maxLength] {/* init to false */};
+        setUniqueValues(table, rows, maxLength, encountered);
+    }
+    //Else, if this exceeds the size the stack can tolerate, use a temp file
+    else {
+        int tempfd = open(tempFile.c_str(), O_RDWR | O_CREAT | O_TRUNC);
+        if (tempfd == -1) {
+            throw runtime_error("Unable to open temp file '"
+                                + tempFile
+                                + "': ("
+                                + to_string(errno)
+                                + ") "
+                                + strerror(errno));
+        }
+        //Immediately delete the file to ensure it will be cleaned up and be harder to access
+        if (unlink(tempFile.c_str()) != 0) {
+            throw runtime_error("Unable to unlink temp file '"
+                                + tempFile
+                                + "': ("
+                                + to_string(errno)
+                                + ") "
+                                + strerror(errno));
+        }
+        {
+            int err = posix_fallocate(tempfd, 0, maxLength * sizeof(bool));
+            if (err != 0) {
+                throw runtime_error("Unable to posix_fallocate temp file '"
+                                    + tempFile
+                                    + "': ("
+                                    + to_string(err)
+                                    + ") "
+                                    + strerror(err));
             }
         }
-        currStat.setUniqueValues(uniqueValues);
-        uint64_t maxUsedRows = currStat.getMaxVal() - currStat.getMinVal() + 1;
-        if (maxUsedRows > maxLength) {
-            maxUsedRows = maxLength;
+        //Map the temp file
+        bool* encountered = static_cast<bool*>(mmap(nullptr,
+                                                    maxLength * sizeof(bool),
+                                                    PROT_READ | PROT_WRITE,
+                                                    MAP_SHARED,
+                                                    tempfd,
+                                                    0u));
+        if (encountered == MAP_FAILED) {
+            throw runtime_error("Unable to map temp file "
+                                + tempFile
+                                + "' with length '"
+                                + to_string(maxLength * sizeof(bool))
+                                + "': ("
+                                + to_string(errno)
+                                + ") "
+                                + strerror(errno));
         }
-        for (uint64_t i = 0; i < maxUsedRows; ++i) {
+        //Close the file, it should keep existing due to mmap
+        if (close(tempfd) != 0) {
+            throw runtime_error("Unable to close temp file '"
+                                + tempFile
+                                + "': ("
+                                + to_string(errno)
+                                + ") "
+                                + strerror(errno));
+        }
+        //Init all to false
+        for (uint64_t i = 0; i < maxLength; ++i) {
             encountered[i] = false;
+        }
+        setUniqueValues(table, rows, maxLength, encountered);
+        //Unlink the memory to finally completely delete the file
+        if (munmap(encountered, maxLength * sizeof(bool)) != 0) {
+            throw runtime_error("Unable to munmap temp file '"
+                                + tempFile
+                                + "': ("
+                                + to_string(errno)
+                                + ") "
+                                + strerror(errno));
         }
     }
 }
@@ -125,15 +215,16 @@ MultipleColumnStats::~MultipleColumnStats() {
     }
 }
 
-void MultipleColumnStats::updateOtherRows(size_t col,
-                                          const MultipleColumnStats& current,
-                                          ColumnStat* retValColumnStats,
-                                          ColumnStat& colStatNew,
-                                          const ColumnStat& colStat) const {
+void updateOtherRows(size_t col,
+                     const MultipleColumnStats& current,
+                     ColumnStat* retValColumnStats,
+                     ColumnStat& colStatNew,
+                     const ColumnStat& colStat) {
     double changeRatio = 1.0
                          - (((double) (colStatNew.getTotalRows()))
                             / ((double) (colStat.getTotalRows())));
-    for (size_t i = 0; i < current.cols; ++i) {
+    const size_t cols = current.getCols();
+    for (size_t i = 0; i < cols; ++i) {
         if (i == col) {
             continue;
         }
@@ -334,10 +425,10 @@ MultipleColumnStats MultipleColumnStats::filterSame(size_t colA,
     //Special case of joining with the same column
     if (colA == colB) {
         const double totalRows = (statsColA.getTotalRows()
-                                    * statsColA.getTotalRows())
-                                   / (statsColANew.getMaxVal()
-                                      - statsColANew.getMinVal()
-                                      + 1);
+                                  * statsColA.getTotalRows())
+                                 / (statsColANew.getMaxVal()
+                                    - statsColANew.getMinVal()
+                                    + 1);
 
         for (size_t i = 0; i < cols; ++i) {
             retVal.columnStats[i].setTotalRows(totalRows);
@@ -361,9 +452,9 @@ MultipleColumnStats MultipleColumnStats::filterSame(size_t colA,
     }
     //No need to set anything else, we can be certain they will have the correct value
     const double totalRows = statsColA.getTotalRows()
-                               / (statsColANew.getMaxVal()
-                                  - statsColANew.getMinVal()
-                                  + 1);
+                             / (statsColANew.getMaxVal()
+                                - statsColANew.getMinVal()
+                                + 1);
     statsColANew.setTotalRows(totalRows);
     statsColBNew.setTotalRows(totalRows);
     //Running this with cols as the current column doesn't skip anything
@@ -372,10 +463,10 @@ MultipleColumnStats MultipleColumnStats::filterSame(size_t colA,
     return retVal;
 }
 MultipleColumnStats MultipleColumnStats::join(size_t colThis,
-                                                  const MultipleColumnStats& other,
-                                                  size_t colOther) const {
+                                              const MultipleColumnStats& other,
+                                              size_t colOther) const {
     if (colThis >= cols || colOther >= other.cols) {
-        throw runtime_error("MultipleColumnStats::filterRange index out of bounds [colThis="
+        throw runtime_error("MultipleColumnStats::join index out of bounds [colThis="
                             + to_string(colThis)
                             + ", this.cols="
                             + to_string(cols)
@@ -423,11 +514,11 @@ MultipleColumnStats MultipleColumnStats::join(size_t colThis,
                            - statsColThisNew.getMinVal()
                            + 1;
     const double totalRows = (statsColThis.getTotalRows()
-                                * statsColOther.getTotalRows())
-                               / range;
+                              * statsColOther.getTotalRows())
+                             / range;
     const double uniqueRows = (statsColThis.getUniqueValues()
-                                 * statsColOther.getUniqueValues())
-                                / range;
+                               * statsColOther.getUniqueValues())
+                              / range;
     statsColThisNew.setTotalRows(totalRows);
     statsColThisNew.setUniqueValues(uniqueRows);
     statsColOtherNew.setTotalRows(totalRows);

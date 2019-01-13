@@ -150,5 +150,6 @@ ostream& operator<<(ostream& os, const JoinOrder& toPrint) {
         }
         os << "]";
     }
+    os << "]";
     return os;
 }

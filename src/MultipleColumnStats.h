@@ -14,20 +14,22 @@ class MultipleColumnStats;
 #include "ColumnStat.h"
 #include "Table.h"
 
-#define MULTIPLECOLUMNSTATS_H_MAX_UNIQUE_SIZE 40000000
+#define MULTIPLECOLUMNSTATS_H_MAX_UNIQUE_SIZE 49999999
+#define MULTIPLECOLUMNSTATS_H_STACK_ARRAY_SIZE 500000
 
 class MultipleColumnStats {
 protected:
     size_t cols;
     ColumnStat* columnStats;
 
-    void updateOtherRows(size_t col,
-                         const MultipleColumnStats& current,
-                         ColumnStat* retValColumnStats,
-                         ColumnStat& colStatNew,
-                         const ColumnStat& colStat) const;
+    void setUniqueValues(const Table& table,
+                         const uint64_t rows,
+                         uint64_t maxLength,
+                         bool* encountered);
+
 public:
-    explicit MultipleColumnStats(const Table& table);
+    explicit MultipleColumnStats(const Table& table,
+                                 const std::string tempFile);
     MultipleColumnStats(const MultipleColumnStats& toCopy);
     MultipleColumnStats(const MultipleColumnStats& toCopyLeft,
                         const MultipleColumnStats& toCopyRight);

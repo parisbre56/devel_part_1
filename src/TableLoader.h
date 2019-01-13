@@ -35,7 +35,8 @@ public:
     const Table& addTable(uint64_t rows,
                           size_t cols,
                           const uint64_t * col_row_table,
-                          bool ownsMemory);
+                          bool ownsMemory,
+                          const std::string tempFile);
     const Table& getTable(uint32_t index) const;
     const MultipleColumnStats& getStats(uint32_t index) const;
     uint32_t getTables() const;

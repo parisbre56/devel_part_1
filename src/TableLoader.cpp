@@ -122,7 +122,12 @@ const Table& TableLoader::loadTable(string filePath) {
                             + strerror(errno));
     }
 
-    const Table& loadedTable = this->addTable(rows, cols, col_row_table, false);
+    const Table& loadedTable = this->addTable(rows,
+                                              cols,
+                                              col_row_table,
+                                              false,
+                                              to_string(tables)
+                                              + ".table_loader_temp");
     CO_IFDEBUG(consoleOutput, "Finished loading table");
     return loadedTable;
 }
@@ -130,13 +135,15 @@ const Table& TableLoader::loadTable(string filePath) {
 const Table& TableLoader::addTable(uint64_t rows,
                                    size_t cols,
                                    const uint64_t * col_row_table,
-                                   bool ownsMemory) {
+                                   bool ownsMemory,
+                                   const string tempFile) {
     ConsoleOutput consoleOutput("TableLoader::addTable");
     if (tables >= arraySize) {
         throw runtime_error("Reached loader limit. Can't load more tables.");
     }
     tableArray[tables] = new Table(rows, cols, col_row_table, ownsMemory);
-    tableStats[tables] = new MultipleColumnStats(*(tableArray[tables]));
+    tableStats[tables] = new MultipleColumnStats(*(tableArray[tables]),
+                                                 tempFile);
     CO_IFDEBUG(consoleOutput,
                "Computed stats [tables="<<tables<<", tableStats["<<tables<<"]="<<*(tableStats[tables])<<"]");
     return *(tableArray[tables++]);
