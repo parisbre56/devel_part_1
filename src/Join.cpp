@@ -335,7 +335,7 @@ void Join::updateJoinStats(MultipleColumnStats& newStat,
         newStat = newStat.join(colOffsetForTable(currentSubset, joinTable)
                                + joinCol,
                                *(tableStats[currTable]),
-                               joinCol);
+                               currCol);
     }
     //If we've already joined, then it's the same as applying a same table filter
     else {
