@@ -198,12 +198,13 @@ void* Executor::thread_routine(void* ignored) {
                 }
             }
             //Else, we have something to read
-            Runnable* toRun = queue[queueEnd++];
-            used--;
+            Runnable* toRun = queue[queueEnd];
+            queueEnd++;
             //Loop pointer around if we reached the end
-            if (queueEnd == queueSize) {
+            if (queueEnd >= queueSize) {
                 queueStart = 0;
             }
+            used--;
             CO_IFDEBUG(consoleOutput,
                        "Executing runnable [runnableCount="<<runnableCount<<", toRun="<<*toRun<<"]");
             //Unlock and signal so that others can also process
@@ -280,7 +281,7 @@ void Executor::addToQueue(Runnable* toAdd) {
             throw runtime_error("Executor shutdown, can't add runnable (Before wait)");
         }
         //If queue is full, wait for someone to remove things
-        if (used == queueSize) {
+        if (used >= queueSize) {
             timespec timeToWait;
             error = clock_gettime(CLOCK_FOR_COND, &timeToWait);
             if (error != 0) {
@@ -335,7 +336,7 @@ void Executor::addToQueue(Runnable* toAdd) {
                 throw runtime_error("Executor shutdown, can't add runnable (After wait)");
             }
             //If the queue is still full, loop so we can wait again
-            if (used == queueSize) {
+            if (used >= queueSize) {
                 error = pthread_mutex_unlock(&queueMutex);
                 if (error != 0) {
                     throw runtime_error("Executor::addToQueue pthread_mutex_unlock after wait full failed [error="
@@ -348,12 +349,13 @@ void Executor::addToQueue(Runnable* toAdd) {
         break;
     }
     //Else, there's room in the queue
-    queue[queueStart++] = toAdd;
-    used++;
+    queue[queueStart] = toAdd;
+    queueStart++;
     //Loop pointer around if we have reached the end
-    if (queueStart == queueSize) {
+    if (queueStart >= queueSize) {
         queueStart = 0;
     }
+    used++;
     //Unlock and signal so that others can also process
     int error = pthread_mutex_unlock(&queueMutex);
     if (error != 0) {
