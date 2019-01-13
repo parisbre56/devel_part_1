@@ -137,5 +137,41 @@ ostream& operator<<(ostream& os, const JoinJob& toPrint) {
 }
 
 uint32_t getBucketAndChainBuckets(const uint64_t tuplesInBucket) {
-    return tuplesInBucket / 10;
+    if (tuplesInBucket < 100) {
+        return 10;
+    }
+    if (tuplesInBucket < 1000) {
+        return 20;
+    }
+    if (tuplesInBucket < 10000) {
+        return 30;
+    }
+    if (tuplesInBucket < 100000) {
+        return 40;
+    }
+    if (tuplesInBucket < 1000000) {
+        return 50;
+    }
+    if (tuplesInBucket < 3000000) {
+        return 60;
+    }
+    if (tuplesInBucket < 5000000) {
+        return 70;
+    }
+    if (tuplesInBucket < 7000000) {
+        return 80;
+    }
+    if (tuplesInBucket < 10000000) {
+        return 90;
+    }
+    if (tuplesInBucket < 40000000) {
+        return 100;
+    }
+    if (tuplesInBucket < 70000000) {
+        return 110;
+    }
+    if (tuplesInBucket < 100000000) {
+        return 120;
+    }
+    return 130;
 }
