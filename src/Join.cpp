@@ -963,7 +963,7 @@ MultipleColumnStats Join::loadStats(const uint32_t table) const {
 
 /** relR is stored in key, relS is stored in value **/
 ResultContainer* Join::radixHashJoin(const Relation& relR,
-                                    const Relation& relS) {
+                                     const Relation& relS) {
     ConsoleOutput consoleOutput("RadixHashJoin");
 //consoleOutput.errorOutput() << "JOIN EXECUTION STARTED" << endl;
 
@@ -1023,7 +1023,7 @@ ResultContainer* Join::radixHashJoin(const Relation& relR,
                 ((Result*) prevResult)->split();
             }
             if (i == 0) {
-                ((ResultContainer*) reuseContainer)->relenquish();
+                ((ResultContainer*) reuseContainer)->relinquish();
             }
             joinJobs[i] = new JoinJob(rHash,
                                       sHash,

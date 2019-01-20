@@ -165,7 +165,7 @@ void ResultContainer::reset() {
     end = start;
 }
 
-void ResultContainer::relenquish() {
+void ResultContainer::relinquish() {
     resultCount = 0;
     start = nullptr;
     end = nullptr;

@@ -50,7 +50,7 @@ public:
     void addTuple(Tuple&& toAdd);
     /** Reset the container without releasing storage **/
     void reset();
-    void relenquish();
+    void relinquish();
     uint64_t getResultCount() const;
     const bool * getUsedRows() const;
     void setUsedRow(uint32_t col);
